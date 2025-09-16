@@ -789,7 +789,7 @@ useEffect(() => {
       onChange={(e) => setInputMessage(e.target.value)}
       onKeyPress={handleKeyPress}
       placeholder="Ask about your Smartsquatch data..."
-      disabled={isLoading}   {/* <--- remove !isConnected */}
+      disabled={isLoading}   
       style={{
         flex: 1,
         padding: '12px',
@@ -821,6 +821,7 @@ useEffect(() => {
   <Send size={16} />
   Send
 </button>
+
 
   </div>
 </div>
