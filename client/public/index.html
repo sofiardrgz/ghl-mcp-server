@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smartsquatch Copilot</title>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/lucide-react@0.263.1/dist/umd/lucide-react.min.js"></script>
     <style>
         * {
@@ -20,82 +19,317 @@
             min-height: 100vh;
             color: #e0e0e0;
             padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         
-        .glass-card {
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 5px;
+        }
+        
+        .main-content {
+            display: flex;
+            gap: 20px;
+            flex: 1;
+        }
+        
+        .sidebar {
+            width: 250px;
             background: rgba(13, 45, 13, 0.8);
             border: 1px solid rgba(15, 185, 129, 0.2);
             border-radius: 12px;
+            padding: 20px;
             backdrop-filter: blur(10px);
         }
         
-        .glass-header {
-            background: rgba(13, 45, 13, 0.9);
-            border-bottom: 1px solid rgba(15, 185, 129, 0.2);
+        .sidebar h2 {
+            color: #0FB981;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
-        .glass-sidebar {
-            background: rgba(13, 45, 13, 0.8);
-            border-right: 1px solid rgba(15, 185, 129, 0.2);
+        .features-list {
+            list-style: none;
+            color: rgba(255, 255, 255, 0.9);
         }
         
-        .glass-chat {
+        .features-list li {
+            margin-bottom: 12px;
+            padding: 8px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .chat-container {
+            flex: 1;
             background: rgba(13, 45, 13, 0.7);
             border: 1px solid rgba(15, 185, 129, 0.2);
             border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 75vh;
         }
         
-        .glass-message-user {
+        .chat-header {
+            background: rgba(13, 45, 13, 0.9);
+            border-bottom: 1px solid rgba(15, 185, 129, 0.2);
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .chat-header-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .chat-header img {
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+        }
+        
+        .chat-header h3 {
+            font-weight: 600;
+            color: white;
+            margin: 0;
+            font-size: 16px;
+        }
+        
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .message {
+            display: flex;
+            max-width: 80%;
+        }
+        
+        .user-message {
+            justify-content: flex-end;
+        }
+        
+        .message-content {
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+        
+        .user-message .message-content {
             background: rgba(15, 185, 129, 0.8);
             color: white;
-            border-radius: 12px;
             border: 1px solid rgba(15, 185, 129, 0.3);
         }
         
-        .glass-message-assistant {
+        .assistant-message .message-content {
             background: rgba(255, 255, 255, 0.1);
             color: white;
-            border-radius: 12px;
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
         
-        .glass-message-system {
+        .system-message .message-content {
             background: rgba(239, 68, 68, 0.2);
             color: #fecaca;
-            border-radius: 12px;
             border: 1px solid rgba(239, 68, 68, 0.3);
         }
         
-        .glass-input {
-            background: rgba(255, 255, 255, 0.9);
-            border: 1px solid rgba(15, 185, 129, 0.3);
-            border-radius: 8px;
-            color: #333;
+        .message-timestamp {
+            font-size: 12px;
+            margin-top: 8px;
+            color: rgba(255, 255, 255, 0.6);
         }
         
-        .glass-button {
-            background: rgba(15, 185, 129, 0.8);
-            color: white;
+        .ai-activity {
+            margin-bottom: 16px;
+            padding: 12px;
+            background: rgba(15, 185, 129, 0.1);
             border: 1px solid rgba(15, 185, 129, 0.3);
             border-radius: 8px;
             cursor: pointer;
         }
         
-        .chat-messages::-webkit-scrollbar {
-            width: 6px;
+        .ai-activity-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
         }
         
-        .chat-messages::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.1);
+        .ai-activity-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #0FB981;
+            font-weight: 600;
         }
         
-        .chat-messages::-webkit-scrollbar-thumb {
-            background: rgba(15, 185, 129, 0.6);
-            border-radius: 3px;
+        .ai-activity-content {
+            padding: 8px;
         }
         
-        .chat-messages::-webkit-scrollbar-thumb:hover {
+        .ai-activity-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 13px;
+        }
+        
+        .activity-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #0FB981;
+        }
+        
+        .active-indicator {
+            animation: pulse 1.5s infinite;
+        }
+        
+        .contact-data {
+            margin-top: 12px;
+            padding: 16px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            border: 1px solid rgba(15, 185, 129, 0.3);
+            font-size: 13px;
+        }
+        
+        .contact-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .contact-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #0FB981;
+            font-weight: 600;
+        }
+        
+        .toggle-button {
+            background: rgba(15, 185, 129, 0.2);
+            border: 1px solid rgba(15, 185, 129, 0.5);
+            border-radius: 4px;
+            color: #0FB981;
+            padding: 4px 8px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+        
+        .contact-list {
+            margin-bottom: 12px;
+        }
+        
+        .contact-item {
+            margin-bottom: 8px;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            border-left: 3px solid #0FB981;
+        }
+        
+        .contact-name {
+            color: white;
+            font-weight: 500;
+        }
+        
+        .contact-detail {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 12px;
+            margin-top: 4px;
+        }
+        
+        .contact-more {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 12px;
+            text-align: center;
+            margin-top: 8px;
+        }
+        
+        .input-area {
+            padding: 24px;
+            background: rgba(13, 45, 13, 0.9);
+            border-top: 1px solid rgba(15, 185, 129, 0.2);
+        }
+        
+        .input-container {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .message-input {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(15, 185, 129, 0.3);
+            background: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
+            color: #333;
+            outline: none;
+        }
+        
+        .send-button {
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: 1px solid rgba(15, 185, 129, 0.3);
             background: rgba(15, 185, 129, 0.8);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 500;
+        }
+        
+        .send-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .footer {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 20px;
         }
         
         @keyframes pulse {
@@ -103,221 +337,227 @@
             50% { opacity: 0.5; }
             100% { opacity: 1; }
         }
+        
+        /* Scrollbar styling */
+        .messages-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .messages-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        
+        .messages-container::-webkit-scrollbar-thumb {
+            background: rgba(15, 185, 129, 0.6);
+            border-radius: 4px;
+        }
+        
+        .messages-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(15, 185, 129, 0.8);
+        }
     </style>
 </head>
 <body>
-    <div class="max-w-6xl mx-auto">
-        <h1 class="text-2xl font-bold text-center mb-5 text-white">Smartsquatch Copilot</h1>
+    <div class="container">
+        <div class="header">
+            <h1>Smartsquatch Copilot</h1>
+        </div>
         
-        <div class="flex flex-col md:flex-row gap-5 min-h-[80vh]">
-            <!-- Sidebar -->
-            <div class="glass-sidebar w-full md:w-80 p-5 rounded-xl">
-                <h2 class="text-lg font-semibold mb-4 text-[#0FB981] flex items-center gap-2">
-                    <i data-lucide="users" class="w-5 h-5"></i>
-                    Features
-                </h2>
-                <ul class="text-gray-200 space-y-3">
-                    <li class="flex items-center gap-2 p-2 rounded-lg bg-white/5">
-                        <i data-lucide="contact" class="w-4 h-4 text-[#0FB981]"></i>
-                        Contact Management
-                    </li>
-                    <li class="flex items-center gap-2 p-2 rounded-lg bg-white/5">
-                        <i data-lucide="calendar" class="w-4 h-4 text-[#0FB981]"></i>
-                        Calendar & Appointments
-                    </li>
-                    <li class="flex items-center gap-2 p-2 rounded-lg bg-white/5">
-                        <i data-lucide="message-square" class="w-4 h-4 text-[#0FB981]"></i>
-                        Conversations
-                    </li>
-                    <li class="flex items-center gap-2 p-2 rounded-lg bg-white/5">
-                        <i data-lucide="trending-up" class="w-4 h-4 text-[#0FB981]"></i>
-                        Opportunities
-                    </li>
-                    <li class="flex items-center gap-2 p-2 rounded-lg bg-white/5">
-                        <i data-lucide="credit-card" class="w-4 h-4 text-[#0FB981]"></i>
-                        Payments
-                    </li>
-                    <li class="flex items-center gap-2 p-2 rounded-lg bg-white/5">
-                        <i data-lucide="clipboard-list" class="w-4 h-4 text-[#0FB981]"></i>
-                        Tasks
-                    </li>
-                    <li class="flex items-center gap-2 p-2 rounded-lg bg-white/5">
-                        <i data-lucide="map-pin" class="w-4 h-4 text-[#0FB981]"></i>
-                        Locations
-                    </li>
+        <div class="main-content">
+            <div class="sidebar">
+                <h2><i data-lucide="users"></i> Features</h2>
+                <ul class="features-list">
+                    <li><i data-lucide="contact"></i> Contact Management</li>
+                    <li><i data-lucide="calendar"></i> Calendar & Appointments</li>
+                    <li><i data-lucide="message-square"></i> Conversations</li>
+                    <li><i data-lucide="trending-up"></i> Opportunities</li>
+                    <li><i data-lucide="credit-card"></i> Payments</li>
+                    <li><i data-lucide="clipboard-list"></i> Tasks</li>
+                    <li><i data-lucide="map-pin"></i> Locations</li>
                 </ul>
             </div>
             
-            <!-- Chat Area -->
-            <div class="flex-1">
-                <div class="glass-chat h-full p-3 rounded-xl">
-                    <div class="flex flex-col h-full bg-[rgba(13,45,13,0.7)] rounded-xl border border-[rgba(15,185,129,0.2)]">
-                        <!-- Header -->
-                        <div class="glass-header p-4 rounded-t-xl flex justify-between items-center">
-                            <div class="flex items-center gap-3">
-                                <img src="https://storage.googleapis.com/msgsndr/Wj3JvHTBsQKqvP85ShhE/media/68abc9cbd023bc5d3a871163.png" alt="Smartsquatch Logo" class="w-8 h-8 rounded">
-                                <h3 class="font-semibold text-white">Smartsquatch Copilot</h3>
-                                <i data-lucide="check-circle" class="w-5 h-5 text-[#0FB981]"></i>
-                            </div>
-                            <button class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition">
-                                <i data-lucide="settings" class="w-5 h-5 text-gray-300"></i>
-                            </button>
+            <div class="chat-container">
+                <div class="chat-header">
+                    <div class="chat-header-content">
+                        <img src="https://storage.googleapis.com/msgsndr/Wj3JvHTBsQKqvP85ShhE/media/68abc9cbd023bc5d3a871163.png" alt="Smartsquatch Logo">
+                        <h3>Smartsquatch Copilot</h3>
+                        <i data-lucide="check-circle" style="color: #0FB981;"></i>
+                    </div>
+                    <button>
+                        <i data-lucide="settings" style="color: rgba(255,255,255,0.7);"></i>
+                    </button>
+                </div>
+                
+                <div class="messages-container">
+                    <div class="message">
+                        <div class="message-content">
+                            <p><strong>Hello! I can help you with your Smartsquatch data.</strong></p>
+                            <p>Try asking:</p>
+                            <ul>
+                                <li>"Show me all my contacts"</li>
+                                <li>"What appointments do I have today?"</li>
+                                <li>"Get my recent conversations"</li>
+                                <li>"Show me my opportunities"</li>
+                            </ul>
                         </div>
-                        
-                        <!-- Messages -->
-                        <div class="flex-1 p-5 overflow-y-auto chat-messages">
-                            <div class="mb-6">
-                                <p class="text-white mb-3">👋 Hello! I can help you with your Smartsquatch data.</p>
-                                <div class="text-sm">
-                                    <p class="font-medium text-gray-300 mb-2">Try asking:</p>
-                                    <ul class="text-gray-400 space-y-1">
-                                        <li>"Show me all my contacts"</li>
-                                        <li>"What appointments do I have today?"</li>
-                                        <li>"Get my recent conversations"</li>
-                                        <li>"Show me my opportunities"</li>
-                                    </ul>
-                                </div>
+                    </div>
+                    
+                    <div class="message system-message">
+                        <div class="message-content">
+                            Successfully connected to Smartsquatch! You can now ask questions about your data.
+                            <div class="message-timestamp">3:50 PM</div>
+                        </div>
+                    </div>
+                    
+                    <div class="ai-activity" id="aiActivity">
+                        <div class="ai-activity-header">
+                            <div class="ai-activity-title">
+                                <i data-lucide="activity"></i>
+                                <span>AI Activity</span>
                             </div>
-                            
-                            <!-- System Message -->
-                            <div class="flex justify-start mb-4">
-                                <div class="glass-message-system max-w-[80%] p-4">
-                                    <div class="text-sm whitespace-pre-wrap">Successfully connected to Smartsquatch! You can now ask questions about your data.</div>
-                                    <div class="text-xs mt-2 text-[#fecaca]">3:50 PM</div>
-                                </div>
+                            <i data-lucide="chevron-down" id="aiActivityChevron"></i>
+                        </div>
+                        <div class="ai-activity-content" id="aiActivityContent">
+                            <div class="ai-activity-item">
+                                <div class="activity-indicator active-indicator"></div>
+                                <span>Analyzing your request...</span>
                             </div>
+                            <div class="ai-activity-item">
+                                <div class="activity-indicator"></div>
+                                <span>Connecting to Smartsquatch API...</span>
+                            </div>
+                            <div class="ai-activity-item">
+                                <div class="activity-indicator"></div>
+                                <span>Processing data...</span>
+                            </div>
+                            <div class="ai-activity-item">
+                                <div class="activity-indicator"></div>
+                                <span>Formatting response...</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="message user-message">
+                        <div class="message-content">
+                            Show me my recent contacts
+                            <div class="message-timestamp">4:17 PM</div>
+                        </div>
+                    </div>
+                    
+                    <div class="message assistant-message">
+                        <div class="message-content">
+                            Here are your recent contacts:
                             
-                            <!-- AI Activity Panel -->
-                            <div class="mb-4 p-3 bg-[rgba(15,185,129,0.1)] border border-[rgba(15,185,129,0.3)] rounded-lg">
-                                <div class="flex justify-between items-center mb-2 cursor-pointer">
-                                    <div class="flex items-center gap-2 text-[#0FB981]">
-                                        <i data-lucide="activity" class="w-4 h-4"></i>
-                                        <span class="font-medium">AI Activity</span>
+                            <div class="contact-data">
+                                <div class="contact-header">
+                                    <div class="contact-title">
+                                        <i data-lucide="users"></i>
+                                        <span>Contacts Found: 12</span>
                                     </div>
-                                    <i data-lucide="chevron-up" class="w-4 h-4"></i>
+                                    <button class="toggle-button" id="toggleDetails">Toggle Details</button>
                                 </div>
                                 
-                                <div class="pl-6 space-y-2">
-                                    <div class="flex items-center gap-2 text-sm text-gray-300">
-                                        <div class="w-2 h-2 rounded-full bg-[#0FB981] animate-pulse"></div>
-                                        Analyzing your request...
-                                    </div>
-                                    <div class="flex items-center gap-2 text-sm text-gray-300">
-                                        <div class="w-2 h-2 rounded-full bg-[#0FB981]"></div>
-                                        Connecting to Smartsquatch API...
-                                    </div>
-                                    <div class="flex items-center gap-2 text-sm text-gray-300">
-                                        <div class="w-2 h-2 rounded-full bg-[#0FB981]"></div>
-                                        Processing data...
-                                    </div>
-                                    <div class="flex items-center gap-2 text-sm text-gray-300">
-                                        <div class="w-2 h-2 rounded-full bg-[#0FB981]"></div>
-                                        Formatting response...
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- User Message -->
-                            <div class="flex justify-end mb-4">
-                                <div class="glass-message-user max-w-[80%] p-4">
-                                    <div class="text-sm whitespace-pre-wrap">Show me my recent contacts</div>
-                                    <div class="text-xs mt-2 text-white/70">4:17 PM</div>
-                                </div>
-                            </div>
-                            
-                            <!-- Assistant Message with Data -->
-                            <div class="flex justify-start mb-4">
-                                <div class="glass-message-assistant max-w-[80%] p-4">
-                                    <div class="text-sm whitespace-pre-wrap">Here are your recent contacts:</div>
-                                    
-                                    <!-- Contact Data -->
-                                    <div class="mt-3 p-4 bg-[rgba(0,0,0,0.3)] rounded-lg border border-[rgba(15,185,129,0.3)]">
-                                        <div class="flex justify-between items-center mb-3">
-                                            <div class="flex items-center gap-2 text-[#0FB981]">
-                                                <i data-lucide="users" class="w-4 h-4"></i>
-                                                <span class="font-medium">Contacts Found: 12</span>
-                                            </div>
-                                            <button class="px-2 py-1 text-xs bg-[rgba(15,185,129,0.2)] text-[#0FB981] border border-[rgba(15,185,129,0.5)] rounded">
-                                                Toggle Details
-                                            </button>
+                                <div class="contact-list" id="contactList">
+                                    <div class="contact-item">
+                                        <div class="contact-name">John Doe</div>
+                                        <div class="contact-detail">
+                                            <i data-lucide="mail"></i>
+                                            <span>john.doe@example.com</span>
                                         </div>
-                                        
-                                        <!-- Contact List -->
-                                        <div class="space-y-3">
-                                            <div class="p-3 bg-[rgba(255,255,255,0.05)] rounded border-l-4 border-[#0FB981]">
-                                                <div class="font-medium text-white">John Doe</div>
-                                                <div class="flex items-center gap-2 text-xs text-gray-400 mt-1">
-                                                    <i data-lucide="mail" class="w-3 h-3"></i>
-                                                    john.doe@example.com
-                                                </div>
-                                                <div class="flex items-center gap-2 text-xs text-gray-400 mt-1">
-                                                    <i data-lucide="phone" class="w-3 h-3"></i>
-                                                    (555) 123-4567
-                                                </div>
-                                            </div>
-                                            
-                                            <div class="p-3 bg-[rgba(255,255,255,0.05)] rounded border-l-4 border-[#0FB981]">
-                                                <div class="font-medium text-white">Jane Smith</div>
-                                                <div class="flex items-center gap-2 text-xs text-gray-400 mt-1">
-                                                    <i data-lucide="mail" class="w-3 h-3"></i>
-                                                    jane.smith@example.com
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="text-center text-xs text-gray-500 mt-3">
-                                            ...and 10 more contacts
+                                        <div class="contact-detail">
+                                            <i data-lucide="phone"></i>
+                                            <span>(555) 123-4567</span>
                                         </div>
                                     </div>
                                     
-                                    <div class="text-xs mt-2 text-gray-400">4:18 PM</div>
+                                    <div class="contact-item">
+                                        <div class="contact-name">Jane Smith</div>
+                                        <div class="contact-detail">
+                                            <i data-lucide="mail"></i>
+                                            <span>jane.smith@example.com</span>
+                                        </div>
+                                    </div>
                                 </div>
+                                
+                                <div class="contact-more">...and 10 more contacts</div>
                             </div>
+                            
+                            <div class="message-timestamp">4:18 PM</div>
                         </div>
-                        
-                        <!-- Input Area -->
-                        <div class="p-5 glass-header rounded-b-xl">
-                            <div class="flex gap-3">
-                                <input 
-                                    type="text" 
-                                    placeholder="Ask about your Smartsquatch data..." 
-                                    class="glass-input flex-1 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#0FB981]"
-                                >
-                                <button class="glass-button px-5 py-3 flex items-center gap-2">
-                                    <i data-lucide="send" class="w-4 h-4"></i>
-                                    Send
-                                </button>
-                            </div>
-                        </div>
+                    </div>
+                </div>
+                
+                <div class="input-area">
+                    <div class="input-container">
+                        <input type="text" class="message-input" placeholder="Ask about your Smartsquatch data...">
+                        <button class="send-button">
+                            <i data-lucide="send"></i>
+                            <span>Send</span>
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
         
-        <p class="text-center text-gray-500 mt-5">Built by Laken Lee Creative</p>
+        <div class="footer">
+            <p>Built by Laken Lee Creative</p>
+        </div>
     </div>
 
     <script>
         // Initialize Lucide icons
         lucide.createIcons();
         
-        // You can add interactivity here
-        document.addEventListener('DOMContentLoaded', function() {
-            // Example: Toggle AI activity panel
-            const activityHeader = document.querySelector('.flex.justify-between.items-center.mb-2.cursor-pointer');
-            if (activityHeader) {
-                activityHeader.addEventListener('click', function() {
-                    const content = this.nextElementSibling;
-                    const icon = this.querySelector('i[data-lucide="chevron-up"]');
-                    
-                    if (content.style.display === 'none') {
-                        content.style.display = 'block';
-                        lucide.createIcons();
-                    } else {
-                        content.style.display = 'none';
-                        lucide.createIcons();
-                    }
-                });
+        // Toggle AI Activity section
+        const aiActivity = document.getElementById('aiActivity');
+        const aiActivityContent = document.getElementById('aiActivityContent');
+        const aiActivityChevron = document.getElementById('aiActivityChevron');
+        
+        aiActivity.addEventListener('click', function() {
+            if (aiActivityContent.style.display === 'none') {
+                aiActivityContent.style.display = 'block';
+                aiActivityChevron.setAttribute('data-lucide', 'chevron-down');
+            } else {
+                aiActivityContent.style.display = 'none';
+                aiActivityChevron.setAttribute('data-lucide', 'chevron-up');
+            }
+            lucide.createIcons();
+        });
+        
+        // Toggle contact details
+        const toggleButton = document.getElementById('toggleDetails');
+        const contactList = document.getElementById('contactList');
+        
+        toggleButton.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent triggering the AI activity toggle
+            if (contactList.style.display === 'none') {
+                contactList.style.display = 'block';
+                toggleButton.textContent = 'Hide Details';
+            } else {
+                contactList.style.display = 'none';
+                toggleButton.textContent = 'Show Details';
+            }
+        });
+        
+        // Send message functionality
+        const messageInput = document.querySelector('.message-input');
+        const sendButton = document.querySelector('.send-button');
+        
+        sendButton.addEventListener('click', function() {
+            const message = messageInput.value.trim();
+            if (message) {
+                // In a real app, this would send the message to the server
+                console.log('Sending message:', message);
+                messageInput.value = '';
+            }
+        });
+        
+        // Allow sending message with Enter key
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendButton.click();
             }
         });
     </script>
