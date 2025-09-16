@@ -24,7 +24,8 @@ const rateLimitMap = new Map();
 
 const rateLimit = (maxRequests = 100, windowMs = 15 * 60 * 1000) => {
   return (req, res, next) => {
-    const key = req.ip || req.connection.remoteAddress;
+    // Fix: Use req.ip with fallback, avoid deprecated req.connection
+    const key = req.ip || req.socket.remoteAddress || 'unknown';
     const now = Date.now();
     
     if (!rateLimitMap.has(key)) {
@@ -88,7 +89,8 @@ const corsOptions = {
     const allowedOrigins = [
       'http://localhost:3000',
       'http://localhost:3001',
-      'https://your-client-domain.com'
+      'https://your-client-domain.com',
+      'https://smartsquatch-ai.onrender.com'  // Add your actual Render URL
     ];
     
     if (process.env.NODE_ENV === 'development') {
