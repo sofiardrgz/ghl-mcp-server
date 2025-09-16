@@ -117,113 +117,63 @@ async function callGHLMCP(tool, input, headers) {
   }
 }
 
-// Function to determine which GHL tool to use based on user intent - ENHANCED WITH BETTER CREATION HANDLING
-function determineGHLAction(userMessage) {
-  const message = userMessage.toLowerCase();
-  
-  // Calendar & Appointments
-  if (message.includes('calendar') || message.includes('appointment') || message.includes('event') || message.includes('schedule')) {
-    if (message.includes('note') || message.includes('detail')) {
-      return { tool: 'calendars_get-appointment-notes', action: 'get_appointment_notes' };
+// AI-powered intent detection using Gemini
+async function determineGHLActionWithAI(userMessage) {
+  try {
+    const intentAnalysis = await getGeminiResponse(
+      `Analyze this user message and determine what GoHighLevel action they want to perform. Return ONLY a JSON object with the action details.
+
+Available actions:
+- contacts_get-contacts (get all contacts, list contacts, show contacts)
+- contacts_get-contact (find specific contact, get contact details)
+- contacts_create-contact (create new contact, add contact)
+- contacts_update-contact (update contact, edit contact)
+- contacts_upsert-contact (upsert contact)
+- contacts_add-tags (add tags to contact)
+- contacts_remove-tags (remove tags from contact)
+- contacts_get-all-tasks (get contact tasks)
+- calendars_get-calendar-events (get calendar, appointments, events, schedule)
+- calendars_get-appointment-notes (get appointment notes)
+- conversations_search-conversation (search conversations, get conversations)
+- conversations_get-messages (get messages from conversation)
+- conversations_send-a-new-message (send message, send text)
+- opportunities_search-opportunity (get opportunities, deals, pipeline)
+- opportunities_get-pipelines (get pipelines)
+- opportunities_get-opportunity (get specific opportunity)
+- opportunities_update-opportunity (update opportunity)
+- payments_list-transactions (get payments, transactions)
+- payments_get-order-by-id (get specific order)
+- locations_get-location (get location details)
+- locations_get-custom-fields (get custom fields)
+
+Return format: {"tool": "exact_tool_name", "action": "descriptive_action_name"}
+
+Examples:
+- "show me all contacts" → {"tool": "contacts_get-contacts", "action": "get_all_contacts"}
+- "create contact named John" → {"tool": "contacts_create-contact", "action": "create_contact"}
+- "get my calendar" → {"tool": "calendars_get-calendar-events", "action": "get_calendar_events"}
+
+If no clear GHL action is detected, return: {"tool": null, "action": null}`,
+      userMessage
+    );
+
+    // Parse the AI response
+    const cleanedResponse = intentAnalysis.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    const parsedIntent = JSON.parse(cleanedResponse);
+    
+    if (parsedIntent.tool && parsedIntent.action) {
+      return parsedIntent;
     }
-    return { tool: 'calendars_get-calendar-events', action: 'get_calendar_events' };
-  }
-  
-  // Contact Management
-  if (message.includes('contact')) {
-    // Tasks
-    if (message.includes('task')) {
-      return { tool: 'contacts_get-all-tasks', action: 'get_all_tasks' };
-    }
-    // Tags
-    if (message.includes('add') && message.includes('tag')) {
-      return { tool: 'contacts_add-tags', action: 'add_tags' };
-    }
-    if (message.includes('remove') && message.includes('tag')) {
-      return { tool: 'contacts_remove-tags', action: 'remove_tags' };
-    }
-    // CRUD Operations - Enhanced detection
-    if (message.includes('create') || message.includes('add') || message.includes('new') || 
-        message.includes('make a') || message.includes('make new') || message.includes('add a new')) {
-      return { tool: 'contacts_create-contact', action: 'create_contact' };
-    }
-    if (message.includes('update') || message.includes('edit') || message.includes('modify') || message.includes('change')) {
-      return { tool: 'contacts_update-contact', action: 'update_contact' };
-    }
-    if (message.includes('upsert')) {
-      return { tool: 'contacts_upsert-contact', action: 'upsert_contact' };
-    }
-    // Get contacts
-    if (message.includes('all') || message.includes('list') || message.includes('show me contacts')) {
+    return null;
+  } catch (error) {
+    console.error('AI intent detection failed:', error);
+    // Fallback to simple keyword detection for critical functions
+    const message = userMessage.toLowerCase();
+    if (message.includes('contact') && (message.includes('all') || message.includes('list') || message.includes('show'))) {
       return { tool: 'contacts_get-contacts', action: 'get_all_contacts' };
     }
-    if (message.includes('find') || message.includes('get') || message.includes('show')) {
-      return { tool: 'contacts_get-contact', action: 'get_contact' };
-    }
+    return null;
   }
-  
-  // Conversations & Messages
-  if (message.includes('conversation') || message.includes('message') || message.includes('chat')) {
-    if (message.includes('send')) {
-      return { tool: 'conversations_send-a-new-message', action: 'send_message' };
-    }
-    if (message.includes('message') && (message.includes('get') || message.includes('show'))) {
-      return { tool: 'conversations_get-messages', action: 'get_messages' };
-    }
-    return { tool: 'conversations_search-conversation', action: 'search_conversations' };
-  }
-  
-  // Location & Custom Fields
-  if (message.includes('location')) {
-    if (message.includes('custom') || message.includes('field')) {
-      return { tool: 'locations_get-custom-fields', action: 'get_custom_fields' };
-    }
-    return { tool: 'locations_get-location', action: 'get_location' };
-  }
-  
-  // Opportunities & Deals
-  if (message.includes('opportunity') || message.includes('deal') || message.includes('pipeline')) {
-    if (message.includes('pipeline')) {
-      return { tool: 'opportunities_get-pipelines', action: 'get_pipelines' };
-    }
-    if (message.includes('update') || message.includes('edit')) {
-      return { tool: 'opportunities_update-opportunity', action: 'update_opportunity' };
-    }
-    if (message.includes('specific') || message.includes('detail')) {
-      return { tool: 'opportunities_get-opportunity', action: 'get_opportunity' };
-    }
-    return { tool: 'opportunities_search-opportunity', action: 'search_opportunities' };
-  }
-  
-  // Payments & Orders
-  if (message.includes('payment') || message.includes('transaction') || message.includes('order')) {
-    if (message.includes('order') && (message.includes('specific') || message.includes('detail'))) {
-      return { tool: 'payments_get-order-by-id', action: 'get_order' };
-    }
-    return { tool: 'payments_list-transactions', action: 'list_transactions' };
-  }
-  
-  // Custom Fields (can be standalone)
-  if (message.includes('custom') && message.includes('field')) {
-    return { tool: 'locations_get-custom-fields', action: 'get_custom_fields' };
-  }
-  
-  // Tasks (can be standalone)
-  if (message.includes('task')) {
-    return { tool: 'contacts_get-all-tasks', action: 'get_all_tasks' };
-  }
-  
-  // Tags (can be standalone)
-  if (message.includes('tag')) {
-    if (message.includes('add')) {
-      return { tool: 'contacts_add-tags', action: 'add_tags' };
-    }
-    if (message.includes('remove')) {
-      return { tool: 'contacts_remove-tags', action: 'remove_tags' };
-    }
-  }
-  
-  return null;
 }
 
 // Main chat endpoint
@@ -235,8 +185,8 @@ router.post('/chat', validateGHLCredentials, async (req, res) => {
       return res.status(400).json({ error: 'Message is required' });
     }
 
-    // Determine if this requires a GHL action
-    const ghlAction = determineGHLAction(message);
+    // Determine if this requires a GHL action using AI
+    const ghlAction = await determineGHLActionWithAI(message);
     
     let ghlData = null;
     
