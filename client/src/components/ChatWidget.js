@@ -24,11 +24,8 @@ const ChatWidget = ({ isFullPage = false }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [expandedActivities, setExpandedActivities] = useState({});
-  const [ghlConfig, setGhlConfig] = useState({
-    token: '',
-    locationId: ''
-  });
-  
+  const [ghlConfig, setGhlConfig] = useState({ token: '', locationId: '' });
+
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -40,23 +37,20 @@ const ChatWidget = ({ isFullPage = false }) => {
   }, [messages]);
 
   // Load config from localStorage
-useEffect(() => {
-  const saved = localStorage.getItem('ghl-config');
-  if (saved) {
-    try {
-      const config = JSON.parse(saved);
-      setGhlConfig(config);
-      // Force connected for now
-      setIsConnected(true); 
-    } catch (e) {
-      console.error('Error parsing saved config:', e);
+  useEffect(() => {
+    const saved = localStorage.getItem('ghl-config');
+    if (saved) {
+      try {
+        const config = JSON.parse(saved);
+        setGhlConfig(config);
+        setIsConnected(true); // Force connected for now
+      } catch (e) {
+        console.error('Error parsing saved config:', e);
+      }
+    } else {
+      setIsConnected(true);
     }
-  } else {
-    // If no config, still allow usage
-    setIsConnected(true);
-  }
-}, []);
-
+  }, []);
 
   const saveConfig = () => {
     localStorage.setItem('ghl-config', JSON.stringify(ghlConfig));
@@ -74,10 +68,8 @@ useEffect(() => {
           locationId: config.locationId
         })
       });
-      
       const result = await response.json();
       setIsConnected(result.success);
-      
       if (!result.success) {
         addMessage('system', `Connection failed: ${result.error}`);
       } else {
@@ -99,10 +91,7 @@ useEffect(() => {
       aiActivity,
       timestamp: new Date().toLocaleTimeString()
     };
-    
     setMessages(prev => [...prev, newMessage]);
-    
-    // Auto-expand AI activity for new assistant messages
     if (sender === 'assistant' && aiActivity) {
       setExpandedActivities(prev => ({
         ...prev,
@@ -120,19 +109,16 @@ useEffect(() => {
 
   const sendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return;
-
     if (!isConnected) {
       addMessage('system', 'Please configure your Smartsquatch connection first.');
       setShowSettings(true);
       return;
     }
-
     const userMessage = inputMessage;
     setInputMessage('');
     addMessage('user', userMessage);
     setIsLoading(true);
 
-    // Simulate AI processing with activity steps
     const activitySteps = [
       { step: 'Analyzing request', status: 'completed', details: 'Understanding your query about Smartsquatch data' },
       { step: 'Connecting to GHL API', status: 'completed', details: 'Authenticating with Private Integration Token' },
@@ -140,7 +126,6 @@ useEffect(() => {
       { step: 'Formatting response', status: 'completed', details: 'Preparing data for display' }
     ];
 
-    // Simulate API response based on user input
     let response = "I've processed your request.";
     let mockData = null;
 
@@ -148,66 +133,29 @@ useEffect(() => {
       response = "Here are your recent contacts from Smartsquatch:";
       mockData = {
         contacts: [
-          {
-            name: "John Doe",
-            firstName: "John",
-            lastName: "Doe", 
-            email: "john.doe@example.com",
-            phone: "(555) 123-4567",
-            source: "Website",
-            tags: ["Lead", "Interested", "Follow-up"]
-          },
-          {
-            name: "Jane Smith",
-            firstName: "Jane",
-            lastName: "Smith",
-            email: "jane.smith@example.com", 
-            phone: "(555) 987-6543",
-            source: "Facebook",
-            tags: ["Customer", "VIP"]
-          },
-          {
-            name: "Mike Johnson",
-            firstName: "Mike",
-            lastName: "Johnson",
-            email: "mike.j@example.com",
-            phone: "(555) 456-7890",
-            source: "Referral",
-            tags: ["Prospect"]
-          }
+          { name: "John Doe", email: "john.doe@example.com", phone: "(555) 123-4567", tags: ["Lead", "Interested", "Follow-up"] },
+          { name: "Jane Smith", email: "jane.smith@example.com", phone: "(555) 987-6543", tags: ["Customer", "VIP"] },
+          { name: "Mike Johnson", email: "mike.j@example.com", phone: "(555) 456-7890", tags: ["Prospect"] }
         ]
       };
     } else if (userMessage.toLowerCase().includes('appointment') || userMessage.toLowerCase().includes('calendar')) {
       response = "Here are your upcoming appointments:";
       mockData = {
         events: [
-          {
-            title: "Sales Call with John Doe",
-            startTime: new Date(Date.now() + 86400000).toISOString()
-          },
-          {
-            title: "Follow-up Meeting",
-            startTime: new Date(Date.now() + 172800000).toISOString()
-          }
+          { title: "Sales Call with John Doe", startTime: new Date(Date.now() + 86400000).toISOString() },
+          { title: "Follow-up Meeting", startTime: new Date(Date.now() + 172800000).toISOString() }
         ]
       };
     } else if (userMessage.toLowerCase().includes('opportunit')) {
       response = "Here are your current opportunities:";
       mockData = {
         opportunities: [
-          {
-            name: "Website Redesign Project",
-            monetaryValue: 5000
-          },
-          {
-            name: "Marketing Campaign",
-            monetaryValue: 3500
-          }
+          { name: "Website Redesign Project", monetaryValue: 5000 },
+          { name: "Marketing Campaign", monetaryValue: 3500 }
         ]
       };
     }
 
-    // Simulate processing delay
     setTimeout(() => {
       addMessage('assistant', response, mockData, activitySteps);
       setIsLoading(false);
@@ -223,67 +171,24 @@ useEffect(() => {
 
   const AIActivityPanel = ({ activity, messageId }) => {
     if (!activity || !Array.isArray(activity)) return null;
-    
     const isExpanded = expandedActivities[messageId] || false;
-
     return (
-      <div style={{
-        marginTop: '12px',
-        padding: '12px',
-        backgroundColor: 'rgba(15, 185, 129, 0.1)',
-        border: '1px solid rgba(15, 185, 129, 0.3)',
-        borderRadius: '8px'
-      }}>
-        <div 
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            cursor: 'pointer'
-          }}
-          onClick={() => toggleActivity(messageId)}
-        >
+      <div style={{ marginTop: '12px', padding: '12px', backgroundColor: 'rgba(15,185,129,0.1)', border: '1px solid rgba(15,185,129,0.3)', borderRadius: '8px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }} onClick={() => toggleActivity(messageId)}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0FB981' }}>
             <Activity size={14} />
             <span style={{ fontWeight: '600' }}>AI Activity</span>
           </div>
           {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </div>
-        
         {isExpanded && (
           <div style={{ marginTop: '8px', padding: '8px' }}>
             {activity.map((step, idx) => (
-              <div key={idx} style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '8px',
-                padding: '6px',
-                color: 'rgba(255, 255, 255, 0.9)',
-                fontSize: '13px'
-              }}>
-                <div style={{
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  backgroundColor: step.status === 'completed' ? '#0FB981' : 'rgba(255, 255, 255, 0.3)',
-                  marginTop: '5px',
-                  flexShrink: 0
-                }} />
+              <div key={idx} style={{ display: 'flex', gap: '8px', padding: '6px', fontSize: '13px', color: 'rgba(255,255,255,0.9)' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: step.status === 'completed' ? '#0FB981' : 'rgba(255,255,255,0.3)', marginTop: '5px' }} />
                 <div style={{ flex: 1 }}>
-                  <div style={{
-                    fontSize: '12px',
-                    fontWeight: '500',
-                    color: 'white',
-                    marginBottom: '2px'
-                  }}>
-                    {step.step}
-                  </div>
-                  <div style={{
-                    fontSize: '11px',
-                    color: 'rgba(255,255,255,0.7)'
-                  }}>
-                    {step.details}
-                  </div>
+                  <div style={{ fontSize: '12px', fontWeight: '500', color: 'white', marginBottom: '2px' }}>{step.step}</div>
+                  <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)' }}>{step.details}</div>
                 </div>
               </div>
             ))}
