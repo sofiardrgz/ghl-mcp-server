@@ -53,17 +53,34 @@ Please provide a helpful, conversational response based on the context above.`;
 }
 
 // Function to call GHL MCP
+// Function to call GHL MCP
 async function callGHLMCP(tool, input, headers) {
   try {
-    const response = await axios.post(GHL_MCP_URL, {
+    console.log('Calling GHL MCP with:', { tool, input });
+    
+    const requestData = {
       tool: tool,
       input: input
-    }, { headers });
+    };
     
+    const response = await axios.post(GHL_MCP_URL, requestData, { 
+      headers: {
+        'Authorization': headers.Authorization,
+        'locationId': headers.locationId,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    console.log('GHL MCP Response:', response.data);
     return response.data;
   } catch (error) {
-    console.error('GHL MCP Error:', error.response?.data || error.message);
-    throw new Error(`GHL API Error: ${error.response?.data?.message || error.message}`);
+    console.error('GHL MCP Error Details:', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      config: error.config
+    });
+    throw new Error(`GHL API Error: ${error.response?.status} - ${error.response?.statusText}`);
   }
 }
 
@@ -211,12 +228,11 @@ router.post('/test-connection', validateGHLCredentials, async (req, res) => {
     
     const headers = {
       'Authorization': `Bearer ${ghlToken}`,
-      'locationId': locationId,
-      'Content-Type': 'application/json'
+      'locationId': locationId
     };
     
-    // Test with a simple contacts call
-    const testData = await callGHLMCP('contacts_get-contacts', { limit: 1 }, headers);
+    // Test with the exact format from GHL docs
+    const testData = await callGHLMCP('contacts_get-contacts', {}, headers);
     
     res.json({
       success: true,
@@ -253,3 +269,30 @@ router.get('/test-ai', async (req, res) => {
 });
 
 module.exports = router;
+
+// Debug endpoint to test raw GHL call
+router.post('/debug-ghl', async (req, res) => {
+  try {
+    const { ghlToken, locationId } = req.body;
+    
+    const response = await axios.post('https://services.leadconnectorhq.com/mcp/', {
+      tool: 'contacts_get-contacts',
+      input: {}
+    }, {
+      headers: {
+        'Authorization': `Bearer ${ghlToken}`,
+        'locationId': locationId,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    res.json({ success: true, data: response.data });
+  } catch (error) {
+    res.json({ 
+      success: false, 
+      error: error.message,
+      status: error.response?.status,
+      data: error.response?.data 
+    });
+  }
+});
