@@ -125,241 +125,371 @@ const ChatWidget = ({ isFullPage = false }) => {
   const formatGHLData = (data) => {
     if (!data || data.error) return null;
 
-    // Handle contacts data
-    if (data.contacts && Array.isArray(data.contacts)) {
-      return (
-        <div className="mt-2 p-3 bg-black/20 rounded-lg text-sm backdrop-blur-sm border border-white/10">
-          <strong>Contacts Found: {data.contacts.length}</strong>
-          {data.contacts.slice(0, 3).map((contact, idx) => (
-            <div key={idx} className="mt-1 text-xs text-glass-light">
-              • {contact.name || contact.firstName} {contact.lastName || ''} 
-              {contact.email && ` (${contact.email})`}
-              {contact.phone && ` - ${contact.phone}`}
-            </div>
-          ))}
-          {data.contacts.length > 3 && (
-            <div className="text-glass-muted text-xs mt-1">
-              ...and {data.contacts.length - 3} more contacts
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    // Handle events/appointments
-    if (data.events && Array.isArray(data.events)) {
-      return (
-        <div className="mt-2 p-3 bg-black/20 rounded-lg text-sm backdrop-blur-sm border border-white/10">
-          <strong>Events Found: {data.events.length}</strong>
-          {data.events.slice(0, 3).map((event, idx) => (
-            <div key={idx} className="mt-1 text-xs text-glass-light">
-              • {event.title} - {new Date(event.startTime).toLocaleDateString()}
-            </div>
-          ))}
-          {data.events.length > 3 && (
-            <div className="text-glass-muted text-xs mt-1">
-              ...and {data.events.length - 3} more events
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    // Handle opportunities
-    if (data.opportunities && Array.isArray(data.opportunities)) {
-      return (
-        <div className="mt-2 p-3 bg-black/20 rounded-lg text-sm backdrop-blur-sm border border-white/10">
-          <strong>Opportunities Found: {data.opportunities.length}</strong>
-          {data.opportunities.slice(0, 3).map((opp, idx) => (
-            <div key={idx} className="mt-1 text-xs text-glass-light">
-              • {opp.name} - ${opp.monetaryValue || 'N/A'}
-            </div>
-          ))}
-          {data.opportunities.length > 3 && (
-            <div className="text-glass-muted text-xs mt-1">
-              ...and {data.opportunities.length - 3} more opportunities
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    // Handle generic data
-    if (typeof data === 'object' && Object.keys(data).length > 0) {
-      return (
-        <div className="mt-2 p-3 bg-black/20 rounded-lg text-sm backdrop-blur-sm border border-white/10">
-          <pre className="whitespace-pre-wrap overflow-x-auto text-xs max-h-32 overflow-y-auto text-glass-light">
-            {JSON.stringify(data, null, 2)}
-          </pre>
-        </div>
-      );
-    }
-
-    return null;
+    return (
+      <div style={{
+        marginTop: '8px',
+        padding: '12px',
+        backgroundColor: 'rgba(0,0,0,0.2)',
+        borderRadius: '8px',
+        fontSize: '12px',
+        border: '1px solid rgba(255,255,255,0.1)'
+      }}>
+        <pre style={{ 
+          whiteSpace: 'pre-wrap', 
+          overflow: 'auto', 
+          maxHeight: '150px',
+          color: 'rgba(255,255,255,0.8)'
+        }}>
+          {JSON.stringify(data, null, 2)}
+        </pre>
+      </div>
+    );
   };
 
-  // Full Page Chat Layout
-  if (isFullPage) {
-    return (
-      <div className="flex flex-col h-full">
-        {/* Settings Modal */}
-        {showSettings && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
-            <div className="glass-modal rounded-lg p-6 w-96 max-w-90vw">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-glass-white">Smartsquatch Settings</h3>
-                <button onClick={() => setShowSettings(false)} className="text-glass-light hover:text-glass-white">
-                  <X size={20} />
-                </button>
-              </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-glass-light">
-                    Private Integration Token (PIT)
-                  </label>
-                  <input
-                    type="password"
-                    value={ghlConfig.token}
-                    onChange={(e) => setGhlConfig({...ghlConfig, token: e.target.value})}
-                    className="glass-input w-full p-2 rounded-md text-sm text-gray-800"
-                    placeholder="pit-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                  />
-                  <p className="text-xs text-glass-muted mt-1">
-                    Get this from your Smartsquatch integration settings
-                  </p>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-glass-light">
-                    Location ID
-                  </label>
-                  <input
-                    type="text"
-                    value={ghlConfig.locationId}
-                    onChange={(e) => setGhlConfig({...ghlConfig, locationId: e.target.value})}
-                    className="glass-input w-full p-2 rounded-md text-sm text-gray-800"
-                    placeholder="Your location ID"
-                  />
-                  <p className="text-xs text-glass-muted mt-1">
-                    Found in your location settings
-                  </p>
-                </div>
-                
-                <div className="flex space-x-2">
-                  <button 
-                    onClick={saveConfig}
-                    className="glass-button flex-1 text-white py-2 px-4 rounded-md text-sm font-medium"
-                    disabled={!ghlConfig.token || !ghlConfig.locationId}
-                  >
-                    Save & Test Connection
-                  </button>
-                </div>
-              </div>
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+      backgroundColor: 'rgba(13, 45, 13, 0.7)',
+      border: '1px solid rgba(15, 185, 129, 0.2)',
+      borderRadius: '12px',
+      overflow: 'hidden'
+    }}>
+      {/* Settings Modal */}
+      {showSettings && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.7)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'rgba(13, 45, 13, 0.95)',
+            border: '1px solid rgba(15, 185, 129, 0.2)',
+            borderRadius: '12px',
+            padding: '24px',
+            width: '400px',
+            maxWidth: '90vw'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '16px'
+            }}>
+              <h3 style={{ 
+                fontSize: '18px', 
+                fontWeight: '600', 
+                color: 'white',
+                margin: 0
+              }}>
+                Smartsquatch Settings
+              </h3>
+              <button 
+                onClick={() => setShowSettings(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'rgba(255,255,255,0.7)',
+                  cursor: 'pointer',
+                  padding: '4px'
+                }}
+              >
+                <X size={20} />
+              </button>
             </div>
-          </div>
-        )}
-
-        {/* Header */}
-        <div className="glass-header text-white p-4 rounded-t-lg flex justify-between items-center">
-          <div className="flex items-center space-x-3">
-            <img 
-              src="https://storage.googleapis.com/msgsndr/Wj3JvHTBsQKqvP85ShhE/media/68abc9cbd023bc5d3a871163.png" 
-              alt="Smartsquatch Logo" 
-              className="w-8 h-8 rounded filter drop-shadow-md"
-            />
-            <h3 className="font-semibold text-glass-white">Smartsquatch Copilot</h3>
-            {isConnected ? (
-              <CheckCircle size={16} className="text-[#0FB981]" />
-            ) : (
-              <AlertCircle size={16} className="text-yellow-400" />
-            )}
-          </div>
-          <button
-            onClick={() => setShowSettings(true)}
-            className="hover:bg-white/10 p-2 rounded transition-colors backdrop-blur-sm"
-            title="Settings"
-          >
-            <Settings size={16} className="text-glass-light" />
-          </button>
-        </div>
-
-        {/* Messages - LEFT ALIGNED with glassmorphism */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4 chat-messages">
-          {messages.length === 0 && (
-            <div className="text-glass-light text-left">
-              <p className="mb-2 text-glass-white">👋 Hello! I can help you with your Smartsquatch data.</p>
-              <div className="text-sm">
-                <p className="font-medium mb-1 text-glass-light">Try asking:</p>
-                <ul className="space-y-1 text-glass-muted">
-                  <li>"Show me all my contacts"</li>
-                  <li>"What appointments do I have today?"</li>
-                  <li>"Get my recent conversations"</li>
-                  <li>"Show me my opportunities"</li>
-                </ul>
-              </div>
+            
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ 
+                display: 'block', 
+                fontSize: '14px', 
+                fontWeight: '500', 
+                marginBottom: '4px',
+                color: 'rgba(255,255,255,0.8)'
+              }}>
+                Private Integration Token (PIT)
+              </label>
+              <input
+                type="password"
+                value={ghlConfig.token}
+                onChange={(e) => setGhlConfig({...ghlConfig, token: e.target.value})}
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  borderRadius: '6px',
+                  border: '1px solid rgba(15, 185, 129, 0.3)',
+                  backgroundColor: 'rgba(255,255,255,0.9)',
+                  fontSize: '14px',
+                  color: '#333'
+                }}
+                placeholder="pit-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+              />
+              <p style={{ 
+                fontSize: '12px', 
+                color: 'rgba(255,255,255,0.6)', 
+                marginTop: '4px',
+                margin: '4px 0 0 0'
+              }}>
+                Get this from your Smartsquatch integration settings
+              </p>
             </div>
-          )}
-          
-          {messages.map((message) => (
-            <div key={message.id} className="flex justify-start">
-              <div className={`max-w-2xl p-4 rounded-lg ${
-                message.sender === 'user'
-                  ? 'glass-message-user text-white'
-                  : message.sender === 'system'
-                  ? 'glass-message-system text-red-100'
-                  : 'glass-message-assistant text-glass-white'
-              }`}>
-                <div className="text-sm whitespace-pre-wrap text-left">{message.content}</div>
-                {message.data && formatGHLData(message.data)}
-                <div className={`text-xs mt-2 text-left ${
-                  message.sender === 'user' ? 'text-green-100' : 'text-glass-muted'
-                }`}>
-                  {message.timestamp}
-                </div>
-              </div>
+            
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ 
+                display: 'block', 
+                fontSize: '14px', 
+                fontWeight: '500', 
+                marginBottom: '4px',
+                color: 'rgba(255,255,255,0.8)'
+              }}>
+                Location ID
+              </label>
+              <input
+                type="text"
+                value={ghlConfig.locationId}
+                onChange={(e) => setGhlConfig({...ghlConfig, locationId: e.target.value})}
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  borderRadius: '6px',
+                  border: '1px solid rgba(15, 185, 129, 0.3)',
+                  backgroundColor: 'rgba(255,255,255,0.9)',
+                  fontSize: '14px',
+                  color: '#333'
+                }}
+                placeholder="Your location ID"
+              />
+              <p style={{ 
+                fontSize: '12px', 
+                color: 'rgba(255,255,255,0.6)', 
+                marginTop: '4px',
+                margin: '4px 0 0 0'
+              }}>
+                Found in your location settings
+              </p>
             </div>
-          ))}
-          
-          {isLoading && (
-            <div className="flex justify-start">
-              <div className="glass-message-assistant p-4 rounded-lg">
-                <div className="animate-pulse text-sm text-glass-white">Thinking...</div>
-              </div>
-            </div>
-          )}
-          
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input with glassmorphism */}
-        <div className="p-6 glass-header rounded-b-lg">
-          <div className="flex space-x-3 max-w-4xl">
-            <input
-              type="text"
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder={isConnected ? "Ask about your Smartsquatch data..." : "Configure settings first..."}
-              className="glass-input flex-1 p-3 rounded-lg focus:outline-none text-gray-800"
-              disabled={isLoading || !isConnected}
-            />
-            <button
-              onClick={sendMessage}
-              disabled={isLoading || !inputMessage.trim() || !isConnected}
-              className="glass-button px-6 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Send message"
+            
+            <button 
+              onClick={saveConfig}
+              disabled={!ghlConfig.token || !ghlConfig.locationId}
+              style={{
+                width: '100%',
+                padding: '10px',
+                borderRadius: '8px',
+                border: '1px solid rgba(15, 185, 129, 0.3)',
+                backgroundColor: 'rgba(15, 185, 129, 0.8)',
+                color: 'white',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: ghlConfig.token && ghlConfig.locationId ? 'pointer' : 'not-allowed',
+                opacity: ghlConfig.token && ghlConfig.locationId ? 1 : 0.5
+              }}
             >
-              <Send size={16} className="text-white" />
+              Save & Test Connection
             </button>
           </div>
         </div>
-      </div>
-    );
-  }
+      )}
 
-  // Widget version (not used in new design, but keeping for compatibility)
-  return null;
+      {/* Header */}
+      <div style={{
+        backgroundColor: 'rgba(13, 45, 13, 0.9)',
+        borderBottom: '1px solid rgba(15, 185, 129, 0.2)',
+        padding: '16px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <img 
+            src="https://storage.googleapis.com/msgsndr/Wj3JvHTBsQKqvP85ShhE/media/68abc9cbd023bc5d3a871163.png" 
+            alt="Smartsquatch Logo" 
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '4px'
+            }}
+          />
+          <h3 style={{ 
+            fontWeight: '600', 
+            color: 'white',
+            margin: 0,
+            fontSize: '16px'
+          }}>
+            Smartsquatch Copilot
+          </h3>
+          {isConnected ? (
+            <CheckCircle size={16} color="#0FB981" />
+          ) : (
+            <AlertCircle size={16} color="#fbbf24" />
+          )}
+        </div>
+        <button
+          onClick={() => setShowSettings(true)}
+          style={{
+            background: 'rgba(255,255,255,0.1)',
+            border: 'none',
+            borderRadius: '4px',
+            padding: '8px',
+            cursor: 'pointer',
+            color: 'rgba(255,255,255,0.7)'
+          }}
+          title="Settings"
+        >
+          <Settings size={16} />
+        </button>
+      </div>
+
+      {/* Messages */}
+      <div 
+        className="chat-messages"
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: '24px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px'
+        }}
+      >
+        {messages.length === 0 && (
+          <div style={{ color: 'rgba(255,255,255,0.8)' }}>
+            <p style={{ marginBottom: '8px', color: 'white' }}>
+              👋 Hello! I can help you with your Smartsquatch data.
+            </p>
+            <div style={{ fontSize: '14px' }}>
+              <p style={{ 
+                fontWeight: '500', 
+                marginBottom: '4px',
+                color: 'rgba(255,255,255,0.8)'
+              }}>
+                Try asking:
+              </p>
+              <ul style={{ 
+                listStyle: 'none', 
+                padding: 0, 
+                margin: 0,
+                color: 'rgba(255,255,255,0.6)'
+              }}>
+                <li>"Show me all my contacts"</li>
+                <li>"What appointments do I have today?"</li>
+                <li>"Get my recent conversations"</li>
+                <li>"Show me my opportunities"</li>
+              </ul>
+            </div>
+          </div>
+        )}
+        
+        {messages.map((message) => (
+          <div key={message.id} style={{ display: 'flex', justifyContent: 'flex-start' }}>
+            <div style={{
+              maxWidth: '80%',
+              padding: '16px',
+              borderRadius: '12px',
+              backgroundColor: message.sender === 'user' 
+                ? 'rgba(15, 185, 129, 0.8)'
+                : message.sender === 'system'
+                ? 'rgba(239, 68, 68, 0.2)'
+                : 'rgba(255, 255, 255, 0.1)',
+              color: message.sender === 'system' ? '#fecaca' : 'white',
+              border: `1px solid ${
+                message.sender === 'user' 
+                  ? 'rgba(15, 185, 129, 0.3)'
+                  : message.sender === 'system'
+                  ? 'rgba(239, 68, 68, 0.3)'
+                  : 'rgba(255, 255, 255, 0.2)'
+              }`
+            }}>
+              <div style={{ 
+                fontSize: '14px', 
+                whiteSpace: 'pre-wrap',
+                lineHeight: '1.5'
+              }}>
+                {message.content}
+              </div>
+              {message.data && formatGHLData(message.data)}
+              <div style={{
+                fontSize: '12px',
+                marginTop: '8px',
+                color: message.sender === 'user' 
+                  ? 'rgba(255,255,255,0.7)' 
+                  : 'rgba(255,255,255,0.6)'
+              }}>
+                {message.timestamp}
+              </div>
+            </div>
+          </div>
+        ))}
+        
+        {isLoading && (
+          <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+            <div style={{
+              padding: '16px',
+              borderRadius: '12px',
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              color: 'white',
+              border: '1px solid rgba(255, 255, 255, 0.2)'
+            }}>
+              <div style={{ fontSize: '14px' }}>Thinking...</div>
+            </div>
+          </div>
+        )}
+        
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input */}
+      <div style={{
+        padding: '24px',
+        backgroundColor: 'rgba(13, 45, 13, 0.9)',
+        borderTop: '1px solid rgba(15, 185, 129, 0.2)'
+      }}>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <input
+            type="text"
+            value={inputMessage}
+            onChange={(e) => setInputMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder={isConnected ? "Ask about your Smartsquatch data..." : "Configure settings first..."}
+            disabled={isLoading || !isConnected}
+            style={{
+              flex: 1,
+              padding: '12px',
+              borderRadius: '8px',
+              border: '1px solid rgba(15, 185, 129, 0.3)',
+              backgroundColor: 'rgba(255,255,255,0.9)',
+              fontSize: '14px',
+              color: '#333',
+              outline: 'none'
+            }}
+          />
+          <button
+            onClick={sendMessage}
+            disabled={isLoading || !inputMessage.trim() || !isConnected}
+            style={{
+              padding: '12px 24px',
+              borderRadius: '8px',
+              border: '1px solid rgba(15, 185, 129, 0.3)',
+              backgroundColor: 'rgba(15, 185, 129, 0.8)',
+              color: 'white',
+              cursor: (isLoading || !inputMessage.trim() || !isConnected) ? 'not-allowed' : 'pointer',
+              opacity: (isLoading || !inputMessage.trim() || !isConnected) ? 0.5 : 1
+            }}
+            title="Send message"
+          >
+            <Send size={16} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default ChatWidget;
