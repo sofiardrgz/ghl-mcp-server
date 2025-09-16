@@ -1,128 +1,23 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap');
-
-/* Simplified CSS for debugging */
-.App {
-  font-family: 'Manrope', sans-serif;
-  min-height: 100vh;
+/* Add pulse animation for AI activity */
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
 }
 
-/* Simple dark background */
-.smartsquatch-background {
-  background: linear-gradient(135deg, #1a2e1a 0%, #0d2d0d 100%);
-  min-height: 100vh;
-  color: white;
-}
-
-/* Basic glass effects */
-.glass-card {
-  background: rgba(13, 45, 13, 0.8);
-  border: 1px solid rgba(15, 185, 129, 0.2);
-  border-radius: 12px;
-  backdrop-filter: blur(10px);
-}
-
-.glass-header {
-  background: rgba(13, 45, 13, 0.9);
-  border-bottom: 1px solid rgba(15, 185, 129, 0.2);
-}
-
-.glass-sidebar {
-  background: rgba(13, 45, 13, 0.8);
-  border-right: 1px solid rgba(15, 185, 129, 0.2);
-}
-
-.glass-chat {
-  background: rgba(13, 45, 13, 0.7);
-  border: 1px solid rgba(15, 185, 129, 0.2);
-  border-radius: 12px;
-}
-
-/* Message styling */
-.glass-message-user {
-  background: rgba(15, 185, 129, 0.8);
-  color: white;
-  border-radius: 12px;
-  border: 1px solid rgba(15, 185, 129, 0.3);
-}
-
-.glass-message-assistant {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.glass-message-system {
-  background: rgba(239, 68, 68, 0.2);
-  color: #fecaca;
-  border-radius: 12px;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-}
-
-/* Input styling */
-.glass-input {
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(15, 185, 129, 0.3);
-  border-radius: 8px;
-  color: #333;
-}
-
-.glass-input:focus {
-  border-color: #0FB981;
-  box-shadow: 0 0 0 3px rgba(15, 185, 129, 0.1);
-  outline: none;
-}
-
-/* Button styling */
-.glass-button {
-  background: rgba(15, 185, 129, 0.8);
-  color: white;
-  border: 1px solid rgba(15, 185, 129, 0.3);
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.glass-button:hover {
-  background: rgba(15, 185, 129, 0.9);
-}
-
-.glass-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Text colors */
-.text-glass-white {
-  color: rgba(255, 255, 255, 0.95);
-}
-
-.text-glass-light {
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.text-glass-muted {
-  color: rgba(255, 255, 255, 0.6);
-}
-
-/* Modal */
-.glass-modal {
-  background: rgba(13, 45, 13, 0.95);
-  border: 1px solid rgba(15, 185, 129, 0.2);
-  border-radius: 12px;
-}
-
-/* Scrollbar */
+/* Improved scrollbar styling */
 .chat-messages::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
 
 .chat-messages::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
 }
 
 .chat-messages::-webkit-scrollbar-thumb {
   background: rgba(15, 185, 129, 0.6);
-  border-radius: 3px;
+  border-radius: 4px;
 }
 
 .chat-messages::-webkit-scrollbar-thumb:hover {
