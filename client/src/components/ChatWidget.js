@@ -125,25 +125,257 @@ const ChatWidget = ({ isFullPage = false }) => {
   const formatGHLData = (data) => {
     if (!data || data.error) return null;
 
-    return (
-      <div style={{
-        marginTop: '8px',
-        padding: '12px',
-        backgroundColor: 'rgba(0,0,0,0.2)',
-        borderRadius: '8px',
-        fontSize: '12px',
-        border: '1px solid rgba(255,255,255,0.1)'
-      }}>
-        <pre style={{ 
-          whiteSpace: 'pre-wrap', 
-          overflow: 'auto', 
-          maxHeight: '150px',
-          color: 'rgba(255,255,255,0.8)'
+    // Handle contacts data specifically
+    if (data.contacts && Array.isArray(data.contacts)) {
+      return (
+        <div style={{
+          marginTop: '12px',
+          padding: '16px',
+          backgroundColor: 'rgba(0,0,0,0.3)',
+          borderRadius: '8px',
+          fontSize: '13px',
+          border: '1px solid rgba(15, 185, 129, 0.3)',
+          position: 'relative'
         }}>
-          {JSON.stringify(data, null, 2)}
-        </pre>
-      </div>
-    );
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '12px'
+          }}>
+            <strong style={{ color: '#0FB981' }}>
+              Contacts Found: {data.contacts.length}
+            </strong>
+            <button
+              onClick={() => {
+                const element = document.querySelector('[data-contact-details]');
+                if (element) element.style.display = element.style.display === 'none' ? 'block' : 'none';
+              }}
+              style={{
+                background: 'rgba(15, 185, 129, 0.2)',
+                border: '1px solid rgba(15, 185, 129, 0.5)',
+                borderRadius: '4px',
+                color: '#0FB981',
+                padding: '4px 8px',
+                fontSize: '11px',
+                cursor: 'pointer'
+              }}
+            >
+              Toggle Details
+            </button>
+          </div>
+          
+          {/* Contact summary */}
+          <div style={{ marginBottom: '12px' }}>
+            {data.contacts.slice(0, 5).map((contact, idx) => (
+              <div key={idx} style={{ 
+                marginBottom: '8px', 
+                padding: '8px',
+                backgroundColor: 'rgba(255,255,255,0.05)',
+                borderRadius: '4px',
+                borderLeft: '3px solid #0FB981'
+              }}>
+                <div style={{ color: 'white', fontWeight: '500' }}>
+                  {contact.name || `${contact.firstName || ''} ${contact.lastName || ''}`.trim() || 'Unnamed Contact'}
+                </div>
+                {contact.email && (
+                  <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px' }}>
+                    📧 {contact.email}
+                  </div>
+                )}
+                {contact.phone && (
+                  <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px' }}>
+                    📞 {contact.phone}
+                  </div>
+                )}
+                {contact.tags && contact.tags.length > 0 && (
+                  <div style={{ marginTop: '4px' }}>
+                    {contact.tags.slice(0, 3).map((tag, tagIdx) => (
+                      <span key={tagIdx} style={{
+                        display: 'inline-block',
+                        backgroundColor: 'rgba(15, 185, 129, 0.2)',
+                        color: '#0FB981',
+                        padding: '2px 6px',
+                        borderRadius: '10px',
+                        fontSize: '10px',
+                        marginRight: '4px',
+                        marginTop: '2px'
+                      }}>
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+            {data.contacts.length > 5 && (
+              <div style={{ 
+                color: 'rgba(255,255,255,0.6)', 
+                fontSize: '12px',
+                textAlign: 'center',
+                marginTop: '8px'
+              }}>
+                ...and {data.contacts.length - 5} more contacts
+              </div>
+            )}
+          </div>
+
+          {/* Raw data (collapsible) */}
+          <div data-contact-details style={{ display: 'none' }}>
+            <div style={{
+              backgroundColor: 'rgba(0,0,0,0.4)',
+              padding: '12px',
+              borderRadius: '6px',
+              maxHeight: '200px',
+              overflow: 'auto'
+            }}>
+              <pre style={{ 
+                whiteSpace: 'pre-wrap',
+                fontSize: '11px',
+                color: 'rgba(255,255,255,0.7)',
+                margin: 0
+              }}>
+                {JSON.stringify(data.contacts.slice(0, 3), null, 2)}
+              </pre>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Handle events/appointments
+    if (data.events && Array.isArray(data.events)) {
+      return (
+        <div style={{
+          marginTop: '12px',
+          padding: '16px',
+          backgroundColor: 'rgba(0,0,0,0.3)',
+          borderRadius: '8px',
+          fontSize: '13px',
+          border: '1px solid rgba(15, 185, 129, 0.3)'
+        }}>
+          <strong style={{ color: '#0FB981' }}>Events Found: {data.events.length}</strong>
+          {data.events.slice(0, 3).map((event, idx) => (
+            <div key={idx} style={{ 
+              marginTop: '8px',
+              padding: '8px',
+              backgroundColor: 'rgba(255,255,255,0.05)',
+              borderRadius: '4px',
+              borderLeft: '3px solid #fbbf24'
+            }}>
+              <div style={{ color: 'white', fontWeight: '500' }}>
+                📅 {event.title}
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px' }}>
+                {new Date(event.startTime).toLocaleDateString()} at {new Date(event.startTime).toLocaleTimeString()}
+              </div>
+            </div>
+          ))}
+          {data.events.length > 3 && (
+            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', marginTop: '8px' }}>
+              ...and {data.events.length - 3} more events
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Handle opportunities
+    if (data.opportunities && Array.isArray(data.opportunities)) {
+      return (
+        <div style={{
+          marginTop: '12px',
+          padding: '16px',
+          backgroundColor: 'rgba(0,0,0,0.3)',
+          borderRadius: '8px',
+          fontSize: '13px',
+          border: '1px solid rgba(15, 185, 129, 0.3)'
+        }}>
+          <strong style={{ color: '#0FB981' }}>Opportunities Found: {data.opportunities.length}</strong>
+          {data.opportunities.slice(0, 3).map((opp, idx) => (
+            <div key={idx} style={{ 
+              marginTop: '8px',
+              padding: '8px',
+              backgroundColor: 'rgba(255,255,255,0.05)',
+              borderRadius: '4px',
+              borderLeft: '3px solid #10b981'
+            }}>
+              <div style={{ color: 'white', fontWeight: '500' }}>
+                💰 {opp.name}
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px' }}>
+                Value: ${opp.monetaryValue || 'N/A'}
+              </div>
+            </div>
+          ))}
+          {data.opportunities.length > 3 && (
+            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', marginTop: '8px' }}>
+              ...and {data.opportunities.length - 3} more opportunities
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Handle generic data with close button
+    if (typeof data === 'object' && Object.keys(data).length > 0) {
+      const dataId = `data-${Date.now()}`;
+      return (
+        <div id={dataId} style={{
+          marginTop: '12px',
+          padding: '16px',
+          backgroundColor: 'rgba(0,0,0,0.3)',
+          borderRadius: '8px',
+          fontSize: '13px',
+          border: '1px solid rgba(15, 185, 129, 0.3)',
+          position: 'relative'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '8px'
+          }}>
+            <strong style={{ color: '#0FB981' }}>Raw Data</strong>
+            <button
+              onClick={() => {
+                const element = document.getElementById(dataId);
+                if (element) element.style.display = 'none';
+              }}
+              style={{
+                background: 'rgba(239, 68, 68, 0.2)',
+                border: '1px solid rgba(239, 68, 68, 0.5)',
+                borderRadius: '4px',
+                color: '#f87171',
+                padding: '4px 8px',
+                fontSize: '11px',
+                cursor: 'pointer'
+              }}
+            >
+              ✕ Close
+            </button>
+          </div>
+          <div style={{
+            backgroundColor: 'rgba(0,0,0,0.4)',
+            padding: '12px',
+            borderRadius: '6px',
+            maxHeight: '200px',
+            overflow: 'auto'
+          }}>
+            <pre style={{ 
+              whiteSpace: 'pre-wrap',
+              fontSize: '11px',
+              color: 'rgba(255,255,255,0.7)',
+              margin: 0
+            }}>
+              {JSON.stringify(data, null, 2)}
+            </pre>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
   };
 
   return (
