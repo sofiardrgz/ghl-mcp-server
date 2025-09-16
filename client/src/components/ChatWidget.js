@@ -40,20 +40,23 @@ const ChatWidget = ({ isFullPage = false }) => {
   }, [messages]);
 
   // Load config from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('ghl-config');
-    if (saved) {
-      try {
-        const config = JSON.parse(saved);
-        setGhlConfig(config);
-        if (config.token && config.locationId) {
-          testConnection(config);
-        }
-      } catch (e) {
-        console.error('Error parsing saved config:', e);
-      }
+useEffect(() => {
+  const saved = localStorage.getItem('ghl-config');
+  if (saved) {
+    try {
+      const config = JSON.parse(saved);
+      setGhlConfig(config);
+      // Force connected for now
+      setIsConnected(true); 
+    } catch (e) {
+      console.error('Error parsing saved config:', e);
     }
-  }, []);
+  } else {
+    // If no config, still allow usage
+    setIsConnected(true);
+  }
+}, []);
+
 
   const saveConfig = () => {
     localStorage.setItem('ghl-config', JSON.stringify(ghlConfig));
@@ -774,53 +777,53 @@ const ChatWidget = ({ isFullPage = false }) => {
       </div>
 
       {/* Input */}
-      <div style={{
-        padding: '24px',
-        backgroundColor: 'rgba(13, 45, 13, 0.9)',
-        borderTop: '1px solid rgba(15, 185, 129, 0.2)'
-      }}>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <input
-            type="text"
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder={isConnected ? "Ask about your Smartsquatch data..." : "Configure settings first..."}
-            disabled={isLoading || !isConnected}
-            style={{
-              flex: 1,
-              padding: '12px',
-              borderRadius: '8px',
-              border: '1px solid rgba(15, 185, 129, 0.3)',
-              backgroundColor: 'rgba(255,255,255,0.9)',
-              fontSize: '14px',
-              color: '#333',
-              outline: 'none'
-            }}
-          />
-          <button
-            onClick={sendMessage}
-            disabled={isLoading || !inputMessage.trim() || !isConnected}
-            style={{
-              padding: '12px 24px',
-              borderRadius: '8px',
-              border: '1px solid rgba(15, 185, 129, 0.3)',
-              backgroundColor: 'rgba(15, 185, 129, 0.8)',
-              color: 'white',
-              cursor: (isLoading || !inputMessage.trim() || !isConnected) ? 'not-allowed' : 'pointer',
-              opacity: (isLoading || !inputMessage.trim() || !isConnected) ? 0.5 : 1,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-            title="Send message"
-          >
-            <Send size={16} />
-            Send
-          </button>
-        </div>
-      </div>
-    </div>
+<div style={{
+  padding: '24px',
+  backgroundColor: 'rgba(13, 45, 13, 0.9)',
+  borderTop: '1px solid rgba(15, 185, 129, 0.2)'
+}}>
+  <div style={{ display: 'flex', gap: '12px' }}>
+    <input
+      type="text"
+      value={inputMessage}
+      onChange={(e) => setInputMessage(e.target.value)}
+      onKeyPress={handleKeyPress}
+      placeholder="Ask about your Smartsquatch data..."
+      disabled={isLoading}   {/* <--- remove !isConnected */}
+      style={{
+        flex: 1,
+        padding: '12px',
+        borderRadius: '8px',
+        border: '1px solid rgba(15, 185, 129, 0.3)',
+        backgroundColor: 'rgba(255,255,255,0.9)',
+        fontSize: '14px',
+        color: '#333',
+        outline: 'none'
+      }}
+    />
+    <button
+      onClick={sendMessage}
+      disabled={isLoading || !inputMessage.trim()}   {/* <--- remove !isConnected */}
+      style={{
+        padding: '12px 24px',
+        borderRadius: '8px',
+        border: '1px solid rgba(15, 185, 129, 0.3)',
+        backgroundColor: 'rgba(15, 185, 129, 0.8)',
+        color: 'white',
+        cursor: (isLoading || !inputMessage.trim()) ? 'not-allowed' : 'pointer',
+        opacity: (isLoading || !inputMessage.trim()) ? 0.5 : 1,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px'
+      }}
+      title="Send message"
+    >
+      <Send size={16} />
+      Send
+    </button>
+  </div>
+</div>
+
   );
 };
 
