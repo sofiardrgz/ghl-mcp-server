@@ -1,25 +1,185 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap');
+
 /* App.css */
 .App {
   text-align: center;
+  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+/* Main background matching login page */
+.smartsquatch-background {
+  background-image: url('https://storage.googleapis.com/msgsndr/Wj3JvHTBsQKqvP85ShhE/media/68c30c86395395299eadd557.png');
+  background-color: #1a2e1a;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  min-height: 100vh;
+  width: 100vw;
+}
+
+/* Glassmorphism card effects */
+.glass-card {
+  background: linear-gradient(135deg, #0d2d0d 0%, #0FB981 100%);
+  background-image: 
+    linear-gradient(135deg, 
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.08) 20%, 
+      rgba(255, 255, 255, 0.05) 30%, 
+      rgba(255, 255, 255, 0.02) 40%,
+      rgba(255, 255, 255, 0) 50%),
+    linear-gradient(135deg, 
+      rgba(15, 185, 129, 0.03) 0%, 
+      rgba(15, 185, 129, 0.01) 100%),
+    linear-gradient(135deg, #0d2d0d 0%, #0FB981 100%);
+  border: 1px solid rgba(0, 168, 112, 0.06);
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  position: relative;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.glass-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 20%;
+  right: 20%;
+  height: 1px;
+  background: linear-gradient(to right, 
+    rgba(0, 0, 0, 0) 0%,
+    rgba(15, 185, 129, 0.7) 50%,
+    rgba(0, 0, 0, 0) 100%);
+  border-radius: 12px 12px 0 0;
+  z-index: 1;
+}
+
+.glass-card::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 30%;
+  right: 30%;
+  height: 1px;
+  background: linear-gradient(to right, 
+    rgba(0, 0, 0, 0) 0%,
+    rgba(15, 185, 129, 0.6) 50%,
+    rgba(0, 0, 0, 0) 100%);
+  border-radius: 0 0 12px 12px;
+  z-index: 1;
+}
+
+/* Header glassmorphism */
+.glass-header {
+  background: rgba(13, 45, 13, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(15, 185, 129, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Sidebar glassmorphism */
+.glass-sidebar {
+  background: rgba(13, 45, 13, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-right: 1px solid rgba(15, 185, 129, 0.1);
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Chat area glassmorphism */
+.glass-chat {
+  background: rgba(13, 45, 13, 0.65);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(15, 185, 129, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* Message bubbles with glassmorphism */
+.glass-message-user {
+  background: linear-gradient(135deg, 
+    rgba(15, 185, 129, 0.8) 0%, 
+    rgba(15, 185, 129, 0.9) 100%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(15, 185, 129, 0.3);
+  box-shadow: 0 4px 16px rgba(15, 185, 129, 0.2);
+}
+
+.glass-message-assistant {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.glass-message-system {
+  background: rgba(239, 68, 68, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.1);
+}
+
+/* Input area glassmorphism */
+.glass-input {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(15, 185, 129, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.glass-input:focus {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: #0FB981;
+  box-shadow: 0 0 0 3px rgba(15, 185, 129, 0.1), 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* Button glassmorphism */
+.glass-button {
+  background: linear-gradient(135deg, 
+    rgba(15, 185, 129, 0.8) 0%, 
+    rgba(15, 185, 129, 0.9) 100%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(15, 185, 129, 0.3);
+  box-shadow: 0 4px 16px rgba(15, 185, 129, 0.2);
+  transition: all 0.3s ease;
+}
+
+.glass-button:hover {
+  background: linear-gradient(135deg, 
+    rgba(15, 185, 129, 0.9) 0%, 
+    rgba(15, 185, 129, 1) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(15, 185, 129, 0.3);
 }
 
 /* Custom scrollbar for chat messages */
 .chat-messages::-webkit-scrollbar {
-  width: 4px;
+  width: 6px;
 }
 
 .chat-messages::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
 }
 
 .chat-messages::-webkit-scrollbar-thumb {
-  background: #0FB981;
-  border-radius: 2px;
+  background: rgba(15, 185, 129, 0.6);
+  border-radius: 3px;
 }
 
 .chat-messages::-webkit-scrollbar-thumb:hover {
-  background: #0FB981;
-  opacity: 0.8;
+  background: rgba(15, 185, 129, 0.8);
 }
 
 /* Animation for loading dots */
@@ -41,12 +201,33 @@
   transition: all 0.3s ease;
 }
 
-/* Button hover effects */
-button:hover {
-  transform: translateY(-1px);
+/* Typography colors for dark theme */
+.text-glass-white {
+  color: rgba(255, 255, 255, 0.9);
 }
 
-/* Chat widget shadow */
-.shadow-xl {
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+.text-glass-light {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.text-glass-muted {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Feature list styling */
+.feature-list {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.feature-list h3 {
+  color: #0FB981;
+}
+
+/* Settings modal glassmorphism */
+.glass-modal {
+  background: linear-gradient(135deg, #0d2d0d 0%, #0FB981 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(15, 185, 129, 0.2);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
 }
