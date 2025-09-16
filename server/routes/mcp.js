@@ -47,10 +47,11 @@ const GHL_TOOLS = {
   'list_transactions': 'payments_list-transactions'
 };
 
-// Function to get Gemini AI response
+// Function to get Gemini AI response - FIXED MODEL NAME
 async function getGeminiResponse(systemPrompt, userMessage) {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    // Use the current model name
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     
     const prompt = `${systemPrompt}
 
@@ -69,6 +70,10 @@ Please provide a helpful, conversational response based on the context above.`;
     // Fallback response if Gemini fails
     if (error.message?.includes('quota')) {
       return "I'm temporarily experiencing high usage. Please try again in a moment.";
+    }
+    
+    if (error.message?.includes('404') || error.message?.includes('not found')) {
+      return "There's an issue with the AI model configuration. Please contact support.";
     }
     
     return "I'm having trouble processing your request right now. Please try rephrasing your question.";
@@ -403,7 +408,7 @@ router.post('/test-connection', validateGHLCredentials, async (req, res) => {
   }
 });
 
-// Health check for Gemini API
+// Health check for Gemini API - UPDATED MODEL
 router.get('/test-ai', async (req, res) => {
   try {
     const testResponse = await getGeminiResponse(
@@ -413,13 +418,14 @@ router.get('/test-ai', async (req, res) => {
     
     res.json({
       success: true,
-      message: 'Gemini AI is working',
+      message: 'Gemini AI is working with gemini-1.5-flash model',
       response: testResponse
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
+      model: 'gemini-1.5-flash'
     });
   }
 });
