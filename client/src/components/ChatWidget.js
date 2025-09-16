@@ -801,26 +801,27 @@ useEffect(() => {
         outline: 'none'
       }}
     />
-    <button
-      onClick={sendMessage}
-      disabled={isLoading || !inputMessage.trim()}   {/* <--- remove !isConnected */}
-      style={{
-        padding: '12px 24px',
-        borderRadius: '8px',
-        border: '1px solid rgba(15, 185, 129, 0.3)',
-        backgroundColor: 'rgba(15, 185, 129, 0.8)',
-        color: 'white',
-        cursor: (isLoading || !inputMessage.trim()) ? 'not-allowed' : 'pointer',
-        opacity: (isLoading || !inputMessage.trim()) ? 0.5 : 1,
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px'
-      }}
-      title="Send message"
-    >
-      <Send size={16} />
-      Send
-    </button>
+<button
+  onClick={sendMessage}
+  disabled={isLoading || !inputMessage.trim()}
+  style={{
+    padding: '12px 24px',
+    borderRadius: '8px',
+    border: '1px solid rgba(15, 185, 129, 0.3)',
+    backgroundColor: 'rgba(15, 185, 129, 0.8)',
+    color: 'white',
+    cursor: (isLoading || !inputMessage.trim()) ? 'not-allowed' : 'pointer',
+    opacity: (isLoading || !inputMessage.trim()) ? 0.5 : 1,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+  }}
+  title="Send message"
+>
+  <Send size={16} />
+  Send
+</button>
+
   </div>
 </div>
 
