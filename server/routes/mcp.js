@@ -75,14 +75,20 @@ Please provide a helpful, conversational response based on the context above.`;
   }
 }
 
-// Function to call GHL MCP - FIXED VERSION
+// Function to call GHL MCP - FIXED WITH JSON-RPC 2.0 FORMAT
 async function callGHLMCP(tool, input, headers) {
   try {
     console.log('Calling GHL MCP with:', { tool, input });
     
+    // Use JSON-RPC 2.0 format instead of simple format
     const requestData = {
-      tool: tool,
-      input: input
+      jsonrpc: "2.0",
+      id: Date.now().toString(), // Unique request ID
+      method: "tools/call",
+      params: {
+        name: tool,
+        arguments: input
+      }
     };
     
     const response = await axios.post(GHL_MCP_URL, requestData, { 
@@ -90,7 +96,7 @@ async function callGHLMCP(tool, input, headers) {
         'Authorization': headers.Authorization,
         'locationId': headers.locationId,
         'Content-Type': 'application/json',
-        'Accept': 'application/json, text/event-stream'  // CRITICAL FIX - This was missing
+        'Accept': 'application/json, text/event-stream'
       }
     });
     
@@ -446,16 +452,19 @@ router.post('/debug-ghl', async (req, res) => {
   }
 });
 
-// Test endpoint that matches GHL's exact example
+// Test endpoint that uses correct JSON-RPC 2.0 format
 router.post('/test-exact-ghl', async (req, res) => {
   try {
     const { ghlToken, locationId, contactId } = req.body;
     
-    // Use the EXACT format from GHL documentation
+    // Use correct JSON-RPC 2.0 format
     const response = await axios.post('https://services.leadconnectorhq.com/mcp/', {
-      tool: "contacts_get-contact",
-      input: {
-        contactId: contactId || "test123"  // Allow testing with actual contact ID
+      jsonrpc: "2.0",
+      id: "test-request-1",
+      method: "tools/call",
+      params: {
+        name: "contacts_get-contacts",
+        arguments: {}
       }
     }, {
       headers: {
@@ -469,7 +478,7 @@ router.post('/test-exact-ghl', async (req, res) => {
     res.json({ 
       success: true, 
       data: response.data,
-      message: "GHL API call successful using exact documentation format"
+      message: "GHL API call successful using JSON-RPC 2.0 format"
     });
   } catch (error) {
     res.json({ 
@@ -477,7 +486,7 @@ router.post('/test-exact-ghl', async (req, res) => {
       error: error.message,
       status: error.response?.status,
       data: error.response?.data,
-      message: "Failed using exact GHL documentation format"
+      message: "Failed using JSON-RPC 2.0 format"
     });
   }
 });
