@@ -1,21 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Send, 
-  Settings, 
-  X, 
-  CheckCircle, 
-  AlertCircle, 
-  Users,
-  Mail,
-  Phone,
-  Calendar as CalendarIcon,
-  DollarSign,
-  Tag,
-  ChevronDown,
-  ChevronUp,
-  Activity,
-  TrendingUp
-} from 'lucide-react';
+import { Send, Settings, X, CheckCircle, AlertCircle } from 'lucide-react';
 
 const ChatWidget = ({ isFullPage = false }) => {
   const [messages, setMessages] = useState([]);
@@ -23,9 +7,11 @@ const ChatWidget = ({ isFullPage = false }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [expandedActivities, setExpandedActivities] = useState({});
-  const [ghlConfig, setGhlConfig] = useState({ token: '', locationId: '' });
-
+  const [ghlConfig, setGhlConfig] = useState({
+    token: '',
+    locationId: ''
+  });
+  
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -40,15 +26,11 @@ const ChatWidget = ({ isFullPage = false }) => {
   useEffect(() => {
     const saved = localStorage.getItem('ghl-config');
     if (saved) {
-      try {
-        const config = JSON.parse(saved);
-        setGhlConfig(config);
-        setIsConnected(true); // Force connected for now
-      } catch (e) {
-        console.error('Error parsing saved config:', e);
+      const config = JSON.parse(saved);
+      setGhlConfig(config);
+      if (config.token && config.locationId) {
+        testConnection(config);
       }
-    } else {
-      setIsConnected(true);
     }
   }, []);
 
@@ -68,8 +50,10 @@ const ChatWidget = ({ isFullPage = false }) => {
           locationId: config.locationId
         })
       });
+      
       const result = await response.json();
       setIsConnected(result.success);
+      
       if (!result.success) {
         addMessage('system', `Connection failed: ${result.error}`);
       } else {
@@ -82,84 +66,53 @@ const ChatWidget = ({ isFullPage = false }) => {
     }
   };
 
-  const addMessage = (sender, content, data = null, aiActivity = null) => {
-    const newMessage = {
+  const addMessage = (sender, content, data = null) => {
+    setMessages(prev => [...prev, {
       id: Date.now(),
       sender,
       content,
       data,
-      aiActivity,
       timestamp: new Date().toLocaleTimeString()
-    };
-    setMessages(prev => [...prev, newMessage]);
-    if (sender === 'assistant' && aiActivity) {
-      setExpandedActivities(prev => ({
-        ...prev,
-        [newMessage.id]: true
-      }));
-    }
-  };
-
-  const toggleActivity = (messageId) => {
-    setExpandedActivities(prev => ({
-      ...prev,
-      [messageId]: !prev[messageId]
-    }));
+    }]);
   };
 
   const sendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return;
+
     if (!isConnected) {
       addMessage('system', 'Please configure your Smartsquatch connection first.');
       setShowSettings(true);
       return;
     }
+
     const userMessage = inputMessage;
     setInputMessage('');
     addMessage('user', userMessage);
     setIsLoading(true);
 
-    const activitySteps = [
-      { step: 'Analyzing request', status: 'completed', details: 'Understanding your query about Smartsquatch data' },
-      { step: 'Connecting to GHL API', status: 'completed', details: 'Authenticating with Private Integration Token' },
-      { step: 'Fetching data', status: 'completed', details: 'Retrieved contacts from your location' },
-      { step: 'Formatting response', status: 'completed', details: 'Preparing data for display' }
-    ];
+    try {
+      const response = await fetch('/api/mcp/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: userMessage,
+          ghlToken: ghlConfig.token,
+          locationId: ghlConfig.locationId
+        })
+      });
 
-    let response = "I've processed your request.";
-    let mockData = null;
+      const result = await response.json();
 
-    if (userMessage.toLowerCase().includes('contact')) {
-      response = "Here are your recent contacts from Smartsquatch:";
-      mockData = {
-        contacts: [
-          { name: "John Doe", email: "john.doe@example.com", phone: "(555) 123-4567", tags: ["Lead", "Interested", "Follow-up"] },
-          { name: "Jane Smith", email: "jane.smith@example.com", phone: "(555) 987-6543", tags: ["Customer", "VIP"] },
-          { name: "Mike Johnson", email: "mike.j@example.com", phone: "(555) 456-7890", tags: ["Prospect"] }
-        ]
-      };
-    } else if (userMessage.toLowerCase().includes('appointment') || userMessage.toLowerCase().includes('calendar')) {
-      response = "Here are your upcoming appointments:";
-      mockData = {
-        events: [
-          { title: "Sales Call with John Doe", startTime: new Date(Date.now() + 86400000).toISOString() },
-          { title: "Follow-up Meeting", startTime: new Date(Date.now() + 172800000).toISOString() }
-        ]
-      };
-    } else if (userMessage.toLowerCase().includes('opportunit')) {
-      response = "Here are your current opportunities:";
-      mockData = {
-        opportunities: [
-          { name: "Website Redesign Project", monetaryValue: 5000 },
-          { name: "Marketing Campaign", monetaryValue: 3500 }
-        ]
-      };
-    }
-
-    setTimeout(() => {
-      addMessage('assistant', response, mockData, activitySteps);
+      if (result.error) {
+        addMessage('system', `Error: ${result.error}`);
+      } else {
+        addMessage('assistant', result.response, result.ghlData);
+      }
+    } catch (error) {
+      addMessage('system', 'Sorry, I encountered an error processing your request.');
+    } finally {
       setIsLoading(false);
-    }, 2000);
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -169,39 +122,10 @@ const ChatWidget = ({ isFullPage = false }) => {
     }
   };
 
-  const AIActivityPanel = ({ activity, messageId }) => {
-    if (!activity || !Array.isArray(activity)) return null;
-    const isExpanded = expandedActivities[messageId] || false;
-    return (
-      <div style={{ marginTop: '12px', padding: '12px', backgroundColor: 'rgba(15,185,129,0.1)', border: '1px solid rgba(15,185,129,0.3)', borderRadius: '8px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }} onClick={() => toggleActivity(messageId)}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0FB981' }}>
-            <Activity size={14} />
-            <span style={{ fontWeight: '600' }}>AI Activity</span>
-          </div>
-          {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-        </div>
-        {isExpanded && (
-          <div style={{ marginTop: '8px', padding: '8px' }}>
-            {activity.map((step, idx) => (
-              <div key={idx} style={{ display: 'flex', gap: '8px', padding: '6px', fontSize: '13px', color: 'rgba(255,255,255,0.9)' }}>
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: step.status === 'completed' ? '#0FB981' : 'rgba(255,255,255,0.3)', marginTop: '5px' }} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '12px', fontWeight: '500', color: 'white', marginBottom: '2px' }}>{step.step}</div>
-                  <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)' }}>{step.details}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
   const formatGHLData = (data) => {
     if (!data || data.error) return null;
 
-    // Handle contacts data
+    // Handle contacts data specifically - CLEAN TABLE FORMAT
     if (data.contacts && Array.isArray(data.contacts)) {
       return (
         <div style={{
@@ -219,80 +143,128 @@ const ChatWidget = ({ isFullPage = false }) => {
             alignItems: 'center',
             marginBottom: '12px'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0FB981' }}>
-              <Users size={16} />
-              <strong>Contacts Found: {data.contacts.length}</strong>
-            </div>
+            <strong style={{ color: '#0FB981' }}>
+              Found {data.contacts.length} Contacts
+            </strong>
+            <button
+              onClick={() => {
+                const element = document.querySelector('[data-contact-details]');
+                if (element) element.style.display = element.style.display === 'none' ? 'block' : 'none';
+              }}
+              style={{
+                background: 'rgba(15, 185, 129, 0.2)',
+                border: '1px solid rgba(15, 185, 129, 0.5)',
+                borderRadius: '4px',
+                color: '#0FB981',
+                padding: '4px 8px',
+                fontSize: '11px',
+                cursor: 'pointer'
+              }}
+            >
+              Show/Hide Table
+            </button>
           </div>
           
-          {/* Contact list */}
-          <div style={{ marginBottom: '12px' }}>
-            {data.contacts.slice(0, 5).map((contact, idx) => (
-              <div key={idx} style={{ 
-                marginBottom: '8px', 
+          {/* Clean contact table */}
+          <div style={{
+            backgroundColor: 'rgba(255,255,255,0.05)',
+            borderRadius: '6px',
+            overflow: 'hidden',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}>
+            <table style={{
+              width: '100%',
+              borderCollapse: 'collapse',
+              fontSize: '12px'
+            }}>
+              <thead>
+                <tr style={{
+                  backgroundColor: 'rgba(15, 185, 129, 0.2)',
+                  color: '#0FB981',
+                  fontWeight: 'bold'
+                }}>
+                  <th style={{ padding: '8px', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Name</th>
+                  <th style={{ padding: '8px', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Email</th>
+                  <th style={{ padding: '8px', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Phone</th>
+                  <th style={{ padding: '8px', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Source</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.contacts.slice(0, 10).map((contact, idx) => (
+                  <tr key={idx} style={{
+                    backgroundColor: idx % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.05)',
+                    color: 'white'
+                  }}>
+                    <td style={{ 
+                      padding: '8px', 
+                      borderBottom: '1px solid rgba(255,255,255,0.05)',
+                      fontWeight: '500'
+                    }}>
+                      {contact.name || `${contact.firstName || ''} ${contact.lastName || ''}`.trim() || 'N/A'}
+                    </td>
+                    <td style={{ 
+                      padding: '8px', 
+                      borderBottom: '1px solid rgba(255,255,255,0.05)',
+                      color: 'rgba(255,255,255,0.8)'
+                    }}>
+                      {contact.email || 'N/A'}
+                    </td>
+                    <td style={{ 
+                      padding: '8px', 
+                      borderBottom: '1px solid rgba(255,255,255,0.05)',
+                      color: 'rgba(255,255,255,0.8)'
+                    }}>
+                      {contact.phone || 'N/A'}
+                    </td>
+                    <td style={{ 
+                      padding: '8px', 
+                      borderBottom: '1px solid rgba(255,255,255,0.05)',
+                      color: 'rgba(255,255,255,0.8)'
+                    }}>
+                      {contact.source || contact.leadSource || 'N/A'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            
+            {data.contacts.length > 10 && (
+              <div style={{
                 padding: '8px',
-                backgroundColor: 'rgba(255,255,255,0.05)',
-                borderRadius: '4px',
-                borderLeft: '3px solid #0FB981'
-              }}>
-                <div style={{ color: 'white', fontWeight: '500' }}>
-                  {contact.name || `${contact.firstName || ''} ${contact.lastName || ''}`.trim() || 'Unnamed Contact'}
-                </div>
-                {contact.email && (
-                  <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
-                    <Mail size={12} />
-                    {contact.email}
-                  </div>
-                )}
-                {contact.phone && (
-                  <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
-                    <Phone size={12} />
-                    {contact.phone}
-                  </div>
-                )}
-                {contact.tags && contact.tags.length > 0 && (
-                  <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
-                    <Tag size={12} color="rgba(255,255,255,0.6)" />
-                    {contact.tags.slice(0, 3).map((tag, tagIdx) => (
-                      <span key={tagIdx} style={{
-                        display: 'inline-block',
-                        backgroundColor: 'rgba(15, 185, 129, 0.2)',
-                        color: '#0FB981',
-                        padding: '2px 6px',
-                        borderRadius: '10px',
-                        fontSize: '10px',
-                      }}>
-                        {tag}
-                      </span>
-                    ))}
-                    {contact.tags.length > 3 && (
-                      <span style={{
-                        color: 'rgba(255,255,255,0.5)',
-                        fontSize: '10px',
-                      }}>
-                        +{contact.tags.length - 3} more
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-            {data.contacts.length > 5 && (
-              <div style={{ 
-                color: 'rgba(255,255,255,0.6)', 
-                fontSize: '12px',
                 textAlign: 'center',
-                marginTop: '8px'
+                color: 'rgba(255,255,255,0.6)',
+                fontSize: '11px',
+                backgroundColor: 'rgba(0,0,0,0.2)'
               }}>
-                ...and {data.contacts.length - 5} more contacts
+                Showing first 10 of {data.contacts.length} contacts
               </div>
             )}
+          </div>
+
+          {/* Raw data (collapsible) */}
+          <div data-contact-details style={{ display: 'none', marginTop: '12px' }}>
+            <div style={{
+              backgroundColor: 'rgba(0,0,0,0.4)',
+              padding: '12px',
+              borderRadius: '6px',
+              maxHeight: '200px',
+              overflow: 'auto'
+            }}>
+              <pre style={{ 
+                whiteSpace: 'pre-wrap',
+                fontSize: '10px',
+                color: 'rgba(255,255,255,0.7)',
+                margin: 0
+              }}>
+                {JSON.stringify(data.contacts.slice(0, 3), null, 2)}
+              </pre>
+            </div>
           </div>
         </div>
       );
     }
 
-    // Handle events/appointments
+    // Handle events/appointments with clean format
     if (data.events && Array.isArray(data.events)) {
       return (
         <div style={{
@@ -303,37 +275,39 @@ const ChatWidget = ({ isFullPage = false }) => {
           fontSize: '13px',
           border: '1px solid rgba(15, 185, 129, 0.3)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0FB981', marginBottom: '12px' }}>
-            <CalendarIcon size={16} />
-            <strong>Events Found: {data.events.length}</strong>
+          <strong style={{ color: '#0FB981', marginBottom: '12px', display: 'block' }}>
+            Found {data.events.length} Events
+          </strong>
+          <div style={{
+            display: 'grid',
+            gap: '8px'
+          }}>
+            {data.events.slice(0, 5).map((event, idx) => (
+              <div key={idx} style={{ 
+                padding: '10px',
+                backgroundColor: 'rgba(255,255,255,0.05)',
+                borderRadius: '6px',
+                borderLeft: '3px solid #fbbf24'
+              }}>
+                <div style={{ color: 'white', fontWeight: '500', marginBottom: '4px' }}>
+                  📅 {event.title}
+                </div>
+                <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px' }}>
+                  {new Date(event.startTime).toLocaleDateString()} at {new Date(event.startTime).toLocaleTimeString()}
+                </div>
+              </div>
+            ))}
           </div>
-          {data.events.slice(0, 3).map((event, idx) => (
-            <div key={idx} style={{ 
-              marginTop: '8px',
-              padding: '8px',
-              backgroundColor: 'rgba(255,255,255,0.05)',
-              borderRadius: '4px',
-              borderLeft: '3px solid #fbbf24'
-            }}>
-              <div style={{ color: 'white', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <CalendarIcon size={14} />
-                {event.title}
-              </div>
-              <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px', marginLeft: '20px', marginTop: '4px' }}>
-                {new Date(event.startTime).toLocaleDateString()} at {new Date(event.startTime).toLocaleTimeString()}
-              </div>
-            </div>
-          ))}
-          {data.events.length > 3 && (
-            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', marginTop: '8px' }}>
-              ...and {data.events.length - 3} more events
+          {data.events.length > 5 && (
+            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', marginTop: '8px', textAlign: 'center' }}>
+              Showing first 5 of {data.events.length} events
             </div>
           )}
         </div>
       );
     }
 
-    // Handle opportunities
+    // Handle opportunities with clean format
     if (data.opportunities && Array.isArray(data.opportunities)) {
       return (
         <div style={{
@@ -344,32 +318,92 @@ const ChatWidget = ({ isFullPage = false }) => {
           fontSize: '13px',
           border: '1px solid rgba(15, 185, 129, 0.3)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0FB981', marginBottom: '12px' }}>
-            <TrendingUp size={16} />
-            <strong>Opportunities Found: {data.opportunities.length}</strong>
+          <strong style={{ color: '#0FB981', marginBottom: '12px', display: 'block' }}>
+            Found {data.opportunities.length} Opportunities
+          </strong>
+          <div style={{
+            display: 'grid',
+            gap: '8px'
+          }}>
+            {data.opportunities.slice(0, 5).map((opp, idx) => (
+              <div key={idx} style={{ 
+                padding: '10px',
+                backgroundColor: 'rgba(255,255,255,0.05)',
+                borderRadius: '6px',
+                borderLeft: '3px solid #10b981'
+              }}>
+                <div style={{ color: 'white', fontWeight: '500', marginBottom: '4px' }}>
+                  💰 {opp.name}
+                </div>
+                <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px' }}>
+                  Value: ${opp.monetaryValue || 'N/A'}
+                </div>
+              </div>
+            ))}
           </div>
-          {data.opportunities.slice(0, 3).map((opp, idx) => (
-            <div key={idx} style={{ 
-              marginTop: '8px',
-              padding: '8px',
-              backgroundColor: 'rgba(255,255,255,0.05)',
-              borderRadius: '4px',
-              borderLeft: '3px solid #10b981'
-            }}>
-              <div style={{ color: 'white', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <DollarSign size={14} />
-                {opp.name}
-              </div>
-              <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px', marginLeft: '20px', marginTop: '4px' }}>
-                Value: ${opp.monetaryValue || 'N/A'}
-              </div>
-            </div>
-          ))}
-          {data.opportunities.length > 3 && (
-            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', marginTop: '8px' }}>
-              ...and {data.opportunities.length - 3} more opportunities
+          {data.opportunities.length > 5 && (
+            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', marginTop: '8px', textAlign: 'center' }}>
+              Showing first 5 of {data.opportunities.length} opportunities
             </div>
           )}
+        </div>
+      );
+    }
+
+    // Handle generic data with close button
+    if (typeof data === 'object' && Object.keys(data).length > 0) {
+      const dataId = `data-${Date.now()}`;
+      return (
+        <div id={dataId} style={{
+          marginTop: '12px',
+          padding: '16px',
+          backgroundColor: 'rgba(0,0,0,0.3)',
+          borderRadius: '8px',
+          fontSize: '13px',
+          border: '1px solid rgba(15, 185, 129, 0.3)',
+          position: 'relative'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '8px'
+          }}>
+            <strong style={{ color: '#0FB981' }}>Raw Data</strong>
+            <button
+              onClick={() => {
+                const element = document.getElementById(dataId);
+                if (element) element.style.display = 'none';
+              }}
+              style={{
+                background: 'rgba(239, 68, 68, 0.2)',
+                border: '1px solid rgba(239, 68, 68, 0.5)',
+                borderRadius: '4px',
+                color: '#f87171',
+                padding: '4px 8px',
+                fontSize: '11px',
+                cursor: 'pointer'
+              }}
+            >
+              ✕ Close
+            </button>
+          </div>
+          <div style={{
+            backgroundColor: 'rgba(0,0,0,0.4)',
+            padding: '12px',
+            borderRadius: '6px',
+            maxHeight: '200px',
+            overflow: 'auto'
+          }}>
+            <pre style={{ 
+              whiteSpace: 'pre-wrap',
+              fontSize: '11px',
+              color: 'rgba(255,255,255,0.7)',
+              margin: 0
+            }}>
+              {JSON.stringify(data, null, 2)}
+            </pre>
+          </div>
         </div>
       );
     }
@@ -580,6 +614,7 @@ const ChatWidget = ({ isFullPage = false }) => {
 
       {/* Messages */}
       <div 
+        className="chat-messages"
         style={{
           flex: 1,
           overflowY: 'auto',
@@ -618,7 +653,7 @@ const ChatWidget = ({ isFullPage = false }) => {
         )}
         
         {messages.map((message) => (
-          <div key={message.id} style={{ display: 'flex', justifyContent: message.sender === 'user' ? 'flex-end' : 'flex-start' }}>
+          <div key={message.id} style={{ display: 'flex', justifyContent: 'flex-start' }}>
             <div style={{
               maxWidth: '80%',
               padding: '16px',
@@ -644,13 +679,7 @@ const ChatWidget = ({ isFullPage = false }) => {
               }}>
                 {message.content}
               </div>
-              
-              {message.aiActivity && (
-                <AIActivityPanel activity={message.aiActivity} messageId={message.id} />
-              )}
-              
               {message.data && formatGHLData(message.data)}
-              
               <div style={{
                 fontSize: '12px',
                 marginTop: '8px',
@@ -682,55 +711,49 @@ const ChatWidget = ({ isFullPage = false }) => {
       </div>
 
       {/* Input */}
-<div style={{
-  padding: '24px',
-  backgroundColor: 'rgba(13, 45, 13, 0.9)',
-  borderTop: '1px solid rgba(15, 185, 129, 0.2)'
-}}>
-  <div style={{ display: 'flex', gap: '12px' }}>
-    <input
-      type="text"
-      value={inputMessage}
-      onChange={(e) => setInputMessage(e.target.value)}
-      onKeyPress={handleKeyPress}
-      placeholder="Ask about your Smartsquatch data..."
-      disabled={isLoading}   
-      style={{
-        flex: 1,
-        padding: '12px',
-        borderRadius: '8px',
-        border: '1px solid rgba(15, 185, 129, 0.3)',
-        backgroundColor: 'rgba(255,255,255,0.9)',
-        fontSize: '14px',
-        color: '#333',
-        outline: 'none'
-      }}
-    />
-<button
-  onClick={sendMessage}
-  disabled={isLoading || !inputMessage.trim()}
-  style={{
-    padding: '12px 24px',
-    borderRadius: '8px',
-    border: '1px solid rgba(15, 185, 129, 0.3)',
-    backgroundColor: 'rgba(15, 185, 129, 0.8)',
-    color: 'white',
-    cursor: (isLoading || !inputMessage.trim()) ? 'not-allowed' : 'pointer',
-    opacity: (isLoading || !inputMessage.trim()) ? 0.5 : 1,
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px'
-  }}
-  title="Send message"
->
-  <Send size={16} />
-  Send
-</button>
-
-
-  </div>
-</div>
-
+      <div style={{
+        padding: '24px',
+        backgroundColor: 'rgba(13, 45, 13, 0.9)',
+        borderTop: '1px solid rgba(15, 185, 129, 0.2)'
+      }}>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <input
+            type="text"
+            value={inputMessage}
+            onChange={(e) => setInputMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder={isConnected ? "Ask about your Smartsquatch data..." : "Configure settings first..."}
+            disabled={isLoading || !isConnected}
+            style={{
+              flex: 1,
+              padding: '12px',
+              borderRadius: '8px',
+              border: '1px solid rgba(15, 185, 129, 0.3)',
+              backgroundColor: 'rgba(255,255,255,0.9)',
+              fontSize: '14px',
+              color: '#333',
+              outline: 'none'
+            }}
+          />
+          <button
+            onClick={sendMessage}
+            disabled={isLoading || !inputMessage.trim() || !isConnected}
+            style={{
+              padding: '12px 24px',
+              borderRadius: '8px',
+              border: '1px solid rgba(15, 185, 129, 0.3)',
+              backgroundColor: 'rgba(15, 185, 129, 0.8)',
+              color: 'white',
+              cursor: (isLoading || !inputMessage.trim() || !isConnected) ? 'not-allowed' : 'pointer',
+              opacity: (isLoading || !inputMessage.trim() || !isConnected) ? 0.5 : 1
+            }}
+            title="Send message"
+          >
+            <Send size={16} />
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 
