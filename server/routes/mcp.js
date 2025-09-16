@@ -1,13 +1,12 @@
 const express = require('express');
 const axios = require('axios');
-const OpenAI = require('openai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { validateGHLCredentials } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Initialize OpenAI (you can also use other AI providers)
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize Google Gemini
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // GoHighLevel MCP Server endpoint
 const GHL_MCP_URL = 'https://services.leadconnectorhq.com/mcp/';
@@ -24,6 +23,34 @@ const GHL_TOOLS = {
   'get_opportunities': 'opportunities_search-opportunity',
   'get_transactions': 'payments_list-transactions'
 };
+
+// Function to get Gemini AI response
+async function getGeminiResponse(systemPrompt, userMessage) {
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    
+    const prompt = `${systemPrompt}
+
+User Question: ${userMessage}
+
+Please provide a helpful, conversational response based on the context above.`;
+    
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    
+    return text;
+  } catch (error) {
+    console.error('Gemini API Error:', error);
+    
+    // Fallback response if Gemini fails
+    if (error.message?.includes('quota')) {
+      return "I'm temporarily experiencing high usage. Please try again in a moment.";
+    }
+    
+    return "I'm having trouble processing your request right now. Please try rephrasing your question.";
+  }
+}
 
 // Function to call GHL MCP
 async function callGHLMCP(tool, input, headers) {
@@ -44,7 +71,7 @@ async function callGHLMCP(tool, input, headers) {
 function determineGHLAction(userMessage) {
   const message = userMessage.toLowerCase();
   
-  if (message.includes('contact') && (message.includes('get') || message.includes('find') || message.includes('show'))) {
+  if (message.includes('contact') && (message.includes('get') || message.includes('find') || message.includes('show') || message.includes('list'))) {
     if (message.includes('all') || message.includes('list')) {
       return { tool: 'contacts_get-contacts', action: 'get_all_contacts' };
     }
@@ -55,22 +82,22 @@ function determineGHLAction(userMessage) {
     return { tool: 'contacts_create-contact', action: 'create_contact' };
   }
   
-  if (message.includes('calendar') || message.includes('appointment') || message.includes('event')) {
+  if (message.includes('calendar') || message.includes('appointment') || message.includes('event') || message.includes('schedule')) {
     return { tool: 'calendars_get-calendar-events', action: 'get_calendar_events' };
   }
   
-  if (message.includes('conversation') || message.includes('message')) {
+  if (message.includes('conversation') || message.includes('message') || message.includes('chat')) {
     if (message.includes('send')) {
       return { tool: 'conversations_send-a-new-message', action: 'send_message' };
     }
     return { tool: 'conversations_search-conversation', action: 'get_conversations' };
   }
   
-  if (message.includes('opportunity') || message.includes('deal')) {
+  if (message.includes('opportunity') || message.includes('deal') || message.includes('pipeline')) {
     return { tool: 'opportunities_search-opportunity', action: 'get_opportunities' };
   }
   
-  if (message.includes('payment') || message.includes('transaction')) {
+  if (message.includes('payment') || message.includes('transaction') || message.includes('order')) {
     return { tool: 'payments_list-transactions', action: 'get_transactions' };
   }
   
@@ -78,16 +105,12 @@ function determineGHLAction(userMessage) {
 }
 
 // Main chat endpoint
-router.post('/chat', async (req, res) => {
+router.post('/chat', validateGHLCredentials, async (req, res) => {
   try {
     const { message, ghlToken, locationId } = req.body;
     
     if (!message) {
       return res.status(400).json({ error: 'Message is required' });
-    }
-    
-    if (!ghlToken || !locationId) {
-      return res.status(400).json({ error: 'GHL token and location ID are required' });
     }
 
     // Determine if this requires a GHL action
@@ -107,59 +130,64 @@ router.post('/chat', async (req, res) => {
       try {
         switch (ghlAction.action) {
           case 'get_all_contacts':
-            ghlData = await callGHLMCP(ghlAction.tool, {}, ghlHeaders);
+            ghlData = await callGHLMCP(ghlAction.tool, { limit: 50 }, ghlHeaders);
             break;
           case 'get_contact':
             // For demo, we'll get all contacts and let AI filter
-            ghlData = await callGHLMCP(ghlAction.tool, {}, ghlHeaders);
+            ghlData = await callGHLMCP('contacts_get-contacts', { limit: 10 }, ghlHeaders);
             break;
           case 'get_calendar_events':
-            ghlData = await callGHLMCP(ghlAction.tool, {}, ghlHeaders);
+            const today = new Date();
+            const endDate = new Date();
+            endDate.setDate(today.getDate() + 7); // Next 7 days
+            
+            ghlData = await callGHLMCP(ghlAction.tool, {
+              startDate: today.toISOString().split('T')[0],
+              endDate: endDate.toISOString().split('T')[0]
+            }, ghlHeaders);
             break;
           case 'get_conversations':
-            ghlData = await callGHLMCP(ghlAction.tool, {}, ghlHeaders);
+            ghlData = await callGHLMCP(ghlAction.tool, { limit: 10 }, ghlHeaders);
             break;
           case 'get_opportunities':
-            ghlData = await callGHLMCP(ghlAction.tool, {}, ghlHeaders);
+            ghlData = await callGHLMCP(ghlAction.tool, { limit: 20 }, ghlHeaders);
             break;
           case 'get_transactions':
-            ghlData = await callGHLMCP(ghlAction.tool, {}, ghlHeaders);
+            ghlData = await callGHLMCP(ghlAction.tool, { limit: 10 }, ghlHeaders);
             break;
           default:
             break;
         }
       } catch (ghlError) {
         console.error('GHL Error:', ghlError);
-        ghlData = { error: 'Unable to fetch data from GoHighLevel' };
+        ghlData = { error: 'Unable to fetch data from GoHighLevel', details: ghlError.message };
       }
     }
     
     // Create AI prompt with context
     const systemPrompt = `You are an AI assistant for GoHighLevel CRM. You help users interact with their GoHighLevel data through natural language.
-    
-Available actions:
-- Get contacts, create contacts, update contacts
-- View calendar events and appointments
-- Access conversations and send messages
-- Manage opportunities and deals
-- View payment transactions
 
-${ghlData ? `Here's the data from GoHighLevel: ${JSON.stringify(ghlData, null, 2)}` : ''}
+Available actions you can help with:
+- View and manage contacts
+- Check calendar events and appointments  
+- Access conversations and messages
+- Monitor opportunities and deals
+- Review payment transactions
 
-Provide helpful, conversational responses. If you retrieved data, summarize it in a user-friendly way.`;
+${ghlData ? `Here's the data I retrieved from GoHighLevel:
+${JSON.stringify(ghlData, null, 2)}
 
-    // Get AI response
-    const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: message }
-      ],
-      max_tokens: 500,
-      temperature: 0.7
-    });
+Please summarize this data in a helpful, user-friendly way. If there are many items, highlight the most important ones and provide a summary count.` : 'The user is asking a general question that doesn\'t require GoHighLevel data access.'}
 
-    const aiResponse = completion.choices[0].message.content;
+Guidelines:
+- Be conversational and helpful
+- If you retrieved data, explain what you found in simple terms
+- If there's an error, explain it clearly and suggest what the user can try
+- Keep responses concise but informative
+- Always be encouraging and professional`;
+
+    // Get AI response from Gemini
+    const aiResponse = await getGeminiResponse(systemPrompt, message);
 
     res.json({
       response: aiResponse,
@@ -177,7 +205,7 @@ Provide helpful, conversational responses. If you retrieved data, summarize it i
 });
 
 // Test GHL connection
-router.post('/test-connection', async (req, res) => {
+router.post('/test-connection', validateGHLCredentials, async (req, res) => {
   try {
     const { ghlToken, locationId } = req.body;
     
@@ -197,6 +225,27 @@ router.post('/test-connection', async (req, res) => {
     });
   } catch (error) {
     res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Health check for Gemini API
+router.get('/test-ai', async (req, res) => {
+  try {
+    const testResponse = await getGeminiResponse(
+      "You are a helpful assistant.", 
+      "Say hello and confirm you're working!"
+    );
+    
+    res.json({
+      success: true,
+      message: 'Gemini AI is working',
+      response: testResponse
+    });
+  } catch (error) {
+    res.status(500).json({
       success: false,
       error: error.message
     });
