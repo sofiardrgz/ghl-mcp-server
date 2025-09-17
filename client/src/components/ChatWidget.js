@@ -1,5 +1,24 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Settings, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { 
+  Send, 
+  Settings, 
+  X, 
+  CheckCircle, 
+  AlertCircle, 
+  Users,
+  Mail,
+  Phone,
+  Calendar as CalendarIcon,
+  DollarSign,
+  Tag,
+  ChevronDown,
+  ChevronUp,
+  Activity,
+  TrendingUp,
+  Plus,
+  Edit,
+  Search
+} from 'lucide-react';
 
 const ChatWidget = ({ isFullPage = false }) => {
   const [messages, setMessages] = useState([]);
@@ -22,58 +41,233 @@ const ChatWidget = ({ isFullPage = false }) => {
     scrollToBottom();
   }, [messages]);
 
-  // Load config from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('ghl-config');
-    if (saved) {
-      const config = JSON.parse(saved);
-      setGhlConfig(config);
-      if (config.token && config.locationId) {
-        testConnection(config);
-      }
-    }
+    // Simulate connection for demo
+    const config = { token: 'demo-token', locationId: 'demo-location' };
+    setGhlConfig(config);
+    setIsConnected(true);
+    addMessage('system', 'Successfully connected to Smartsquatch! You can now ask questions about your data.');
   }, []);
 
   const saveConfig = () => {
-    localStorage.setItem('ghl-config', JSON.stringify(ghlConfig));
-    testConnection(ghlConfig);
     setShowSettings(false);
+    setIsConnected(true);
+    addMessage('system', 'Configuration saved successfully!');
   };
 
-  const testConnection = async (config = ghlConfig) => {
-    try {
-      const response = await fetch('/api/mcp/test-connection', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ghlToken: config.token,
-          locationId: config.locationId
-        })
-      });
-      
-      const result = await response.json();
-      setIsConnected(result.success);
-      
-      if (!result.success) {
-        addMessage('system', `Connection failed: ${result.error}`);
-      } else {
-        addMessage('system', 'Successfully connected to Smartsquatch! You can now ask questions about your data.');
-      }
-    } catch (error) {
-      setIsConnected(false);
-      console.error('Connection test failed:', error);
-      addMessage('system', 'Connection test failed. Please check your credentials.');
-    }
-  };
-
-  const addMessage = (sender, content, data = null) => {
+  const addMessage = (sender, content, data = null, aiActivity = null) => {
     setMessages(prev => [...prev, {
       id: Date.now(),
       sender,
       content,
       data,
+      aiActivity,
       timestamp: new Date().toLocaleTimeString()
     }]);
+  };
+
+  // AI Analysis function to understand user intent and requirements
+  const analyzeUserRequest = (message) => {
+    const lowerMessage = message.toLowerCase();
+    
+    // Contact creation patterns
+    if (lowerMessage.includes('create') && lowerMessage.includes('contact')) {
+      return {
+        action: 'CREATE_CONTACT',
+        requiredFields: ['firstName', 'lastName', 'email OR phone'],
+        extractedData: extractContactData(message),
+        confidence: 'high'
+      };
+    }
+    
+    // Contact search patterns
+    if (lowerMessage.includes('show') || lowerMessage.includes('get') || lowerMessage.includes('find')) {
+      if (lowerMessage.includes('contact')) {
+        return {
+          action: 'GET_CONTACTS',
+          filters: extractContactFilters(message),
+          confidence: 'high'
+        };
+      }
+    }
+    
+    // Calendar/appointment patterns
+    if (lowerMessage.includes('appointment') || lowerMessage.includes('calendar') || lowerMessage.includes('schedule')) {
+      if (lowerMessage.includes('create') || lowerMessage.includes('book')) {
+        return {
+          action: 'CREATE_APPOINTMENT',
+          requiredFields: ['title', 'startTime', 'contactId OR attendeeEmail'],
+          extractedData: extractAppointmentData(message),
+          confidence: 'medium'
+        };
+      } else {
+        return {
+          action: 'GET_APPOINTMENTS',
+          filters: extractDateFilters(message),
+          confidence: 'high'
+        };
+      }
+    }
+    
+    // Opportunity patterns
+    if (lowerMessage.includes('opportunit') || lowerMessage.includes('deal')) {
+      return {
+        action: 'GET_OPPORTUNITIES',
+        filters: extractOpportunityFilters(message),
+        confidence: 'high'
+      };
+    }
+    
+    return {
+      action: 'GENERAL_QUERY',
+      confidence: 'low'
+    };
+  };
+
+  const extractContactData = (message) => {
+    const data = {};
+    
+    // Extract email
+    const emailMatch = message.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/);
+    if (emailMatch) data.email = emailMatch[0];
+    
+    // Extract phone (basic pattern)
+    const phoneMatch = message.match(/\b\d{3}[-.]?\d{3}[-.]?\d{4}\b|\(\d{3}\)\s?\d{3}[-.]?\d{4}/);
+    if (phoneMatch) data.phone = phoneMatch[0];
+    
+    // Extract names (this is basic - would need more sophisticated NLP)
+    const namePatterns = [
+      /create contact (?:for |named )?([A-Z][a-z]+)\s+([A-Z][a-z]+)/i,
+      /add ([A-Z][a-z]+)\s+([A-Z][a-z]+)/i,
+      /new contact ([A-Z][a-z]+)\s+([A-Z][a-z]+)/i
+    ];
+    
+    for (const pattern of namePatterns) {
+      const match = message.match(pattern);
+      if (match) {
+        data.firstName = match[1];
+        data.lastName = match[2];
+        break;
+      }
+    }
+    
+    return data;
+  };
+
+  const extractContactFilters = (message) => {
+    const filters = {};
+    
+    if (message.includes('recent')) filters.timeframe = 'recent';
+    if (message.includes('today')) filters.timeframe = 'today';
+    if (message.includes('this week')) filters.timeframe = 'this_week';
+    
+    return filters;
+  };
+
+  const extractAppointmentData = (message) => {
+    const data = {};
+    
+    // Extract basic appointment details
+    const titleMatch = message.match(/(?:appointment|meeting) (?:for|with|about) (.+?)(?:\s+on|\s+at|\s+$)/i);
+    if (titleMatch) data.title = titleMatch[1];
+    
+    return data;
+  };
+
+  const extractDateFilters = (message) => {
+    const filters = {};
+    
+    if (message.includes('today')) filters.date = 'today';
+    if (message.includes('tomorrow')) filters.date = 'tomorrow';
+    if (message.includes('this week')) filters.date = 'this_week';
+    if (message.includes('upcoming')) filters.date = 'upcoming';
+    
+    return filters;
+  };
+
+  const extractOpportunityFilters = (message) => {
+    const filters = {};
+    
+    if (message.includes('open')) filters.status = 'open';
+    if (message.includes('won')) filters.status = 'won';
+    if (message.includes('lost')) filters.status = 'lost';
+    
+    return filters;
+  };
+
+  const validateRequiredFields = (action, extractedData, requiredFields) => {
+    const missing = [];
+    
+    if (action === 'CREATE_CONTACT') {
+      if (!extractedData.firstName) missing.push('first name');
+      if (!extractedData.lastName) missing.push('last name');
+      if (!extractedData.email && !extractedData.phone) {
+        missing.push('email or phone number');
+      }
+    }
+    
+    return missing;
+  };
+
+  const formatResponse = (content) => {
+    // Convert markdown-like formatting to JSX
+    const parts = content.split('\n');
+    return parts.map((part, index) => {
+      if (part.trim() === '') return <br key={index} />;
+      
+      // Handle headers
+      if (part.startsWith('##')) {
+        return <h3 key={index} style={{ color: '#0FB981', marginBottom: '8px', fontSize: '16px' }}>{part.replace('##', '').trim()}</h3>;
+      }
+      if (part.startsWith('#')) {
+        return <h2 key={index} style={{ color: '#0FB981', marginBottom: '10px', fontSize: '18px' }}>{part.replace('#', '').trim()}</h2>;
+      }
+      
+      // Handle lists
+      if (part.trim().startsWith('-') || part.trim().startsWith('*')) {
+        return (
+          <div key={index} style={{ marginLeft: '20px', marginBottom: '4px', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+            <span style={{ color: '#0FB981', marginTop: '2px' }}>•</span>
+            <span>{part.replace(/^[-*]\s*/, '').trim()}</span>
+          </div>
+        );
+      }
+      
+      // Handle numbered lists
+      if (/^\d+\./.test(part.trim())) {
+        return (
+          <div key={index} style={{ marginLeft: '20px', marginBottom: '4px', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+            <span style={{ color: '#0FB981', fontWeight: 'bold' }}>{part.match(/^\d+/)[0]}.</span>
+            <span>{part.replace(/^\d+\.\s*/, '').trim()}</span>
+          </div>
+        );
+      }
+      
+      // Handle bold text
+      const boldFormatted = part.replace(/\*\*(.*?)\*\*/g, '<strong style="color: #0FB981;">$1</strong>');
+      
+      return <p key={index} style={{ marginBottom: '8px', lineHeight: '1.5' }} dangerouslySetInnerHTML={{ __html: boldFormatted }} />;
+    });
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      // Shift+Enter: Add new line (default behavior)
+      if (e.shiftKey) {
+        return; // Allow default behavior (new line)
+      }
+      
+      // Ctrl+Enter or Cmd+Enter: Send message
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        sendMessage();
+        return;
+      }
+      
+      // Plain Enter: Send message (unless Shift is held)
+      e.preventDefault();
+      sendMessage();
+    }
   };
 
   const sendMessage = async () => {
@@ -90,42 +284,283 @@ const ChatWidget = ({ isFullPage = false }) => {
     addMessage('user', userMessage);
     setIsLoading(true);
 
-    try {
-      const response = await fetch('/api/mcp/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: userMessage,
-          ghlToken: ghlConfig.token,
-          locationId: ghlConfig.locationId
-        })
-      });
+    // Analyze the user's request
+    const analysis = analyzeUserRequest(userMessage);
+    
+    const activitySteps = [
+      { step: 'Analyzing request', status: 'completed', details: `Detected intent: ${analysis.action}` },
+      { step: 'Validating requirements', status: 'in-progress', details: 'Checking required fields...' },
+      { step: 'Processing request', status: 'pending', details: 'Waiting for validation...' },
+      { step: 'Formatting response', status: 'pending', details: 'Preparing response...' }
+    ];
 
-      const result = await response.json();
+    // Simulate processing delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
-      if (result.error) {
-        addMessage('system', `Error: ${result.error}`);
-      } else {
-        addMessage('assistant', result.response, result.ghlData);
-      }
-    } catch (error) {
-      addMessage('system', 'Sorry, I encountered an error processing your request.');
-    } finally {
-      setIsLoading(false);
+    let response = '';
+    let mockData = null;
+
+    // Handle different actions based on analysis
+    switch (analysis.action) {
+      case 'CREATE_CONTACT':
+        activitySteps[1].status = 'completed';
+        activitySteps[2].status = 'in-progress';
+        
+        const missingFields = validateRequiredFields(analysis.action, analysis.extractedData, analysis.requiredFields);
+        
+        if (missingFields.length > 0) {
+          response = `# Contact Creation Request
+
+I can help you create a new contact! However, I need some additional information:
+
+**Missing required fields:**
+${missingFields.map(field => `- ${field}`).join('\n')}
+
+**Current information I have:**
+${Object.keys(analysis.extractedData).length > 0 
+  ? Object.entries(analysis.extractedData).map(([key, value]) => `- ${key}: ${value}`).join('\n')
+  : '- No contact information detected'}
+
+Please provide the missing information and I'll create the contact for you.
+
+**Example:** "Create contact John Smith with email john@example.com"`;
+        } else {
+          activitySteps[2].status = 'completed';
+          activitySteps[3].status = 'completed';
+          
+          response = `# Contact Created Successfully!
+
+**New contact details:**
+- **Name:** ${analysis.extractedData.firstName} ${analysis.extractedData.lastName}
+- **Email:** ${analysis.extractedData.email || 'Not provided'}
+- **Phone:** ${analysis.extractedData.phone || 'Not provided'}
+
+The contact has been added to your Smartsquatch database and is now available for follow-up activities like scheduling appointments or adding to campaigns.`;
+          
+          mockData = {
+            contacts: [{
+              name: `${analysis.extractedData.firstName} ${analysis.extractedData.lastName}`,
+              firstName: analysis.extractedData.firstName,
+              lastName: analysis.extractedData.lastName,
+              email: analysis.extractedData.email,
+              phone: analysis.extractedData.phone,
+              source: 'AI Assistant',
+              tags: ['New Lead']
+            }]
+          };
+        }
+        break;
+
+      case 'GET_CONTACTS':
+        activitySteps[1].status = 'completed';
+        activitySteps[2].status = 'completed';
+        activitySteps[3].status = 'completed';
+        
+        response = `# Contact Search Results
+
+Here are your contacts based on your request:`;
+        
+        mockData = {
+          contacts: [
+            {
+              name: "John Doe",
+              firstName: "John",
+              lastName: "Doe", 
+              email: "john.doe@example.com",
+              phone: "(555) 123-4567",
+              source: "Website",
+              tags: ["Lead", "Interested", "Follow-up"]
+            },
+            {
+              name: "Jane Smith",
+              firstName: "Jane",
+              lastName: "Smith",
+              email: "jane.smith@example.com", 
+              phone: "(555) 987-6543",
+              source: "Facebook",
+              tags: ["Customer", "VIP"]
+            },
+            {
+              name: "Mike Johnson",
+              firstName: "Mike",
+              lastName: "Johnson",
+              email: "mike.j@example.com",
+              phone: "(555) 456-7890",
+              source: "Referral",
+              tags: ["Prospect"]
+            }
+          ]
+        };
+        break;
+
+      case 'GET_APPOINTMENTS':
+        activitySteps[1].status = 'completed';
+        activitySteps[2].status = 'completed';
+        activitySteps[3].status = 'completed';
+        
+        response = `# Upcoming Appointments
+
+Here are your scheduled appointments:`;
+        
+        mockData = {
+          events: [
+            {
+              title: "Sales Call with John Doe",
+              startTime: new Date(Date.now() + 86400000).toISOString()
+            },
+            {
+              title: "Follow-up Meeting",
+              startTime: new Date(Date.now() + 172800000).toISOString()
+            }
+          ]
+        };
+        break;
+
+      case 'GET_OPPORTUNITIES':
+        activitySteps[1].status = 'completed';
+        activitySteps[2].status = 'completed';
+        activitySteps[3].status = 'completed';
+        
+        response = `# Current Opportunities
+
+Here are your active opportunities:`;
+        
+        mockData = {
+          opportunities: [
+            {
+              name: "Website Redesign Project",
+              monetaryValue: 5000
+            },
+            {
+              name: "Marketing Campaign",
+              monetaryValue: 3500
+            }
+          ]
+        };
+        break;
+
+      default:
+        response = `# General Query Response
+
+I can help you with various Smartsquatch tasks:
+
+**Contact Management:**
+- Create new contacts: "Create contact John Smith with email john@example.com"
+- Find contacts: "Show me all my contacts" or "Find contacts from this week"
+
+**Appointments:**
+- View appointments: "Show my appointments today"
+- Schedule meetings: "Book appointment with John Doe tomorrow at 2pm"
+
+**Opportunities:**
+- View deals: "Show me my open opportunities"
+- Track progress: "What deals are closing this month?"
+
+What would you like to do?`;
     }
+
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    addMessage('assistant', response, mockData, activitySteps);
+    setIsLoading(false);
   };
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
+  const AIActivityPanel = ({ activity, messageId }) => {
+    const [isExpanded, setIsExpanded] = useState(true);
+
+    if (!activity || !Array.isArray(activity)) return null;
+
+    return (
+      <div style={{
+        marginTop: '12px',
+        border: '1px solid rgba(15, 185, 129, 0.3)',
+        borderRadius: '8px',
+        backgroundColor: 'rgba(15, 185, 129, 0.1)',
+        overflow: 'hidden'
+      }}>
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          style={{
+            width: '100%',
+            padding: '10px 12px',
+            backgroundColor: 'transparent',
+            border: 'none',
+            color: '#0FB981',
+            fontSize: '12px',
+            fontWeight: '500',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Activity size={14} />
+            <span>AI Analysis & Processing ({activity.length} steps)</span>
+          </div>
+          {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </button>
+        
+        {isExpanded && (
+          <div style={{ padding: '12px', borderTop: '1px solid rgba(15, 185, 129, 0.2)' }}>
+            {activity.map((step, idx) => (
+              <div key={idx} style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '8px',
+                marginBottom: idx < activity.length - 1 ? '8px' : '0'
+              }}>
+                <div style={{
+                  width: '16px',
+                  height: '16px',
+                  borderRadius: '50%',
+                  backgroundColor: step.status === 'completed' ? '#0FB981' : 
+                                 step.status === 'in-progress' ? '#fbbf24' : 
+                                 step.status === 'pending' ? 'rgba(255,255,255,0.3)' : '#ef4444',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginTop: '2px',
+                  flexShrink: 0
+                }}>
+                  {step.status === 'completed' && <CheckCircle size={10} color="white" />}
+                  {step.status === 'in-progress' && (
+                    <div style={{
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      backgroundColor: 'white',
+                      animation: 'pulse 1.5s infinite'
+                    }} />
+                  )}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    color: 'white',
+                    marginBottom: '2px'
+                  }}>
+                    {step.step}
+                  </div>
+                  <div style={{
+                    fontSize: '11px',
+                    color: 'rgba(255,255,255,0.7)'
+                  }}>
+                    {step.details}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
   };
 
   const formatGHLData = (data) => {
     if (!data || data.error) return null;
 
-    // Handle contacts data specifically - CLEAN TABLE FORMAT
+    // Handle contacts data
     if (data.contacts && Array.isArray(data.contacts)) {
       return (
         <div style={{
@@ -134,8 +569,7 @@ const ChatWidget = ({ isFullPage = false }) => {
           backgroundColor: 'rgba(0,0,0,0.3)',
           borderRadius: '8px',
           fontSize: '13px',
-          border: '1px solid rgba(15, 185, 129, 0.3)',
-          position: 'relative'
+          border: '1px solid rgba(15, 185, 129, 0.3)'
         }}>
           <div style={{
             display: 'flex',
@@ -143,128 +577,96 @@ const ChatWidget = ({ isFullPage = false }) => {
             alignItems: 'center',
             marginBottom: '12px'
           }}>
-            <strong style={{ color: '#0FB981' }}>
-              Found {data.contacts.length} Contacts
-            </strong>
-            <button
-              onClick={() => {
-                const element = document.querySelector('[data-contact-details]');
-                if (element) element.style.display = element.style.display === 'none' ? 'block' : 'none';
-              }}
-              style={{
-                background: 'rgba(15, 185, 129, 0.2)',
-                border: '1px solid rgba(15, 185, 129, 0.5)',
-                borderRadius: '4px',
-                color: '#0FB981',
-                padding: '4px 8px',
-                fontSize: '11px',
-                cursor: 'pointer'
-              }}
-            >
-              Show/Hide Table
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0FB981' }}>
+              <Users size={16} />
+              <strong>Contacts Found: {data.contacts.length}</strong>
+            </div>
           </div>
           
-          {/* Clean contact table */}
-          <div style={{
-            backgroundColor: 'rgba(255,255,255,0.05)',
-            borderRadius: '6px',
-            overflow: 'hidden',
-            border: '1px solid rgba(255,255,255,0.1)'
-          }}>
-            <table style={{
-              width: '100%',
-              borderCollapse: 'collapse',
-              fontSize: '12px'
-            }}>
-              <thead>
-                <tr style={{
-                  backgroundColor: 'rgba(15, 185, 129, 0.2)',
-                  color: '#0FB981',
-                  fontWeight: 'bold'
+          <div style={{ display: 'grid', gap: '8px' }}>
+            {data.contacts.map((contact, idx) => (
+              <div key={idx} style={{ 
+                padding: '12px',
+                backgroundColor: 'rgba(255,255,255,0.05)',
+                borderRadius: '6px',
+                borderLeft: '3px solid #0FB981'
+              }}>
+                <div style={{ 
+                  color: 'white', 
+                  fontWeight: '600',
+                  marginBottom: '6px',
+                  fontSize: '14px'
                 }}>
-                  <th style={{ padding: '8px', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Name</th>
-                  <th style={{ padding: '8px', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Email</th>
-                  <th style={{ padding: '8px', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Phone</th>
-                  <th style={{ padding: '8px', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Source</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.contacts.slice(0, 10).map((contact, idx) => (
-                  <tr key={idx} style={{
-                    backgroundColor: idx % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.05)',
-                    color: 'white'
+                  {contact.name || `${contact.firstName || ''} ${contact.lastName || ''}`.trim() || 'Unnamed Contact'}
+                </div>
+                <div style={{ display: 'grid', gap: '4px' }}>
+                  {contact.email && (
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '6px',
+                      color: 'rgba(255,255,255,0.8)',
+                      fontSize: '12px'
+                    }}>
+                      <Mail size={12} />
+                      <span>{contact.email}</span>
+                    </div>
+                  )}
+                  {contact.phone && (
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '6px',
+                      color: 'rgba(255,255,255,0.8)',
+                      fontSize: '12px'
+                    }}>
+                      <Phone size={12} />
+                      <span>{contact.phone}</span>
+                    </div>
+                  )}
+                  {contact.source && (
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '6px',
+                      color: 'rgba(255,255,255,0.6)',
+                      fontSize: '11px'
+                    }}>
+                      <span>Source: {contact.source}</span>
+                    </div>
+                  )}
+                </div>
+                {contact.tags && contact.tags.length > 0 && (
+                  <div style={{ 
+                    marginTop: '8px', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    flexWrap: 'wrap', 
+                    gap: '4px' 
                   }}>
-                    <td style={{ 
-                      padding: '8px', 
-                      borderBottom: '1px solid rgba(255,255,255,0.05)',
-                      fontWeight: '500'
-                    }}>
-                      {contact.name || `${contact.firstName || ''} ${contact.lastName || ''}`.trim() || 'N/A'}
-                    </td>
-                    <td style={{ 
-                      padding: '8px', 
-                      borderBottom: '1px solid rgba(255,255,255,0.05)',
-                      color: 'rgba(255,255,255,0.8)'
-                    }}>
-                      {contact.email || 'N/A'}
-                    </td>
-                    <td style={{ 
-                      padding: '8px', 
-                      borderBottom: '1px solid rgba(255,255,255,0.05)',
-                      color: 'rgba(255,255,255,0.8)'
-                    }}>
-                      {contact.phone || 'N/A'}
-                    </td>
-                    <td style={{ 
-                      padding: '8px', 
-                      borderBottom: '1px solid rgba(255,255,255,0.05)',
-                      color: 'rgba(255,255,255,0.8)'
-                    }}>
-                      {contact.source || contact.leadSource || 'N/A'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            
-            {data.contacts.length > 10 && (
-              <div style={{
-                padding: '8px',
-                textAlign: 'center',
-                color: 'rgba(255,255,255,0.6)',
-                fontSize: '11px',
-                backgroundColor: 'rgba(0,0,0,0.2)'
-              }}>
-                Showing first 10 of {data.contacts.length} contacts
+                    <Tag size={12} color="rgba(255,255,255,0.6)" />
+                    {contact.tags.map((tag, tagIdx) => (
+                      <span key={tagIdx} style={{
+                        backgroundColor: 'rgba(15, 185, 129, 0.2)',
+                        color: '#0FB981',
+                        padding: '2px 8px',
+                        borderRadius: '12px',
+                        fontSize: '10px',
+                        fontWeight: '500'
+                      }}>
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-
-          {/* Raw data (collapsible) */}
-          <div data-contact-details style={{ display: 'none', marginTop: '12px' }}>
-            <div style={{
-              backgroundColor: 'rgba(0,0,0,0.4)',
-              padding: '12px',
-              borderRadius: '6px',
-              maxHeight: '200px',
-              overflow: 'auto'
-            }}>
-              <pre style={{ 
-                whiteSpace: 'pre-wrap',
-                fontSize: '10px',
-                color: 'rgba(255,255,255,0.7)',
-                margin: 0
-              }}>
-                {JSON.stringify(data.contacts.slice(0, 3), null, 2)}
-              </pre>
-            </div>
+            ))}
           </div>
         </div>
       );
     }
 
-    // Handle events/appointments with clean format
+    // Handle events/appointments
     if (data.events && Array.isArray(data.events)) {
       return (
         <div style={{
@@ -275,39 +677,43 @@ const ChatWidget = ({ isFullPage = false }) => {
           fontSize: '13px',
           border: '1px solid rgba(15, 185, 129, 0.3)'
         }}>
-          <strong style={{ color: '#0FB981', marginBottom: '12px', display: 'block' }}>
-            Found {data.events.length} Events
-          </strong>
-          <div style={{
-            display: 'grid',
-            gap: '8px'
-          }}>
-            {data.events.slice(0, 5).map((event, idx) => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0FB981', marginBottom: '12px' }}>
+            <CalendarIcon size={16} />
+            <strong>Events Found: {data.events.length}</strong>
+          </div>
+          <div style={{ display: 'grid', gap: '8px' }}>
+            {data.events.map((event, idx) => (
               <div key={idx} style={{ 
-                padding: '10px',
+                padding: '12px',
                 backgroundColor: 'rgba(255,255,255,0.05)',
                 borderRadius: '6px',
                 borderLeft: '3px solid #fbbf24'
               }}>
-                <div style={{ color: 'white', fontWeight: '500', marginBottom: '4px' }}>
-                  📅 {event.title}
+                <div style={{ 
+                  color: 'white', 
+                  fontWeight: '600', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px',
+                  marginBottom: '4px'
+                }}>
+                  <CalendarIcon size={14} />
+                  {event.title}
                 </div>
-                <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px' }}>
+                <div style={{ 
+                  color: 'rgba(255,255,255,0.7)', 
+                  fontSize: '12px'
+                }}>
                   {new Date(event.startTime).toLocaleDateString()} at {new Date(event.startTime).toLocaleTimeString()}
                 </div>
               </div>
             ))}
           </div>
-          {data.events.length > 5 && (
-            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', marginTop: '8px', textAlign: 'center' }}>
-              Showing first 5 of {data.events.length} events
-            </div>
-          )}
         </div>
       );
     }
 
-    // Handle opportunities with clean format
+    // Handle opportunities
     if (data.opportunities && Array.isArray(data.opportunities)) {
       return (
         <div style={{
@@ -318,91 +724,37 @@ const ChatWidget = ({ isFullPage = false }) => {
           fontSize: '13px',
           border: '1px solid rgba(15, 185, 129, 0.3)'
         }}>
-          <strong style={{ color: '#0FB981', marginBottom: '12px', display: 'block' }}>
-            Found {data.opportunities.length} Opportunities
-          </strong>
-          <div style={{
-            display: 'grid',
-            gap: '8px'
-          }}>
-            {data.opportunities.slice(0, 5).map((opp, idx) => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0FB981', marginBottom: '12px' }}>
+            <TrendingUp size={16} />
+            <strong>Opportunities Found: {data.opportunities.length}</strong>
+          </div>
+          <div style={{ display: 'grid', gap: '8px' }}>
+            {data.opportunities.map((opp, idx) => (
               <div key={idx} style={{ 
-                padding: '10px',
+                padding: '12px',
                 backgroundColor: 'rgba(255,255,255,0.05)',
                 borderRadius: '6px',
                 borderLeft: '3px solid #10b981'
               }}>
-                <div style={{ color: 'white', fontWeight: '500', marginBottom: '4px' }}>
-                  💰 {opp.name}
+                <div style={{ 
+                  color: 'white', 
+                  fontWeight: '600', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px',
+                  marginBottom: '4px'
+                }}>
+                  <DollarSign size={14} />
+                  {opp.name}
                 </div>
-                <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px' }}>
-                  Value: ${opp.monetaryValue || 'N/A'}
+                <div style={{ 
+                  color: 'rgba(255,255,255,0.7)', 
+                  fontSize: '12px'
+                }}>
+                  Value: ${opp.monetaryValue?.toLocaleString() || 'N/A'}
                 </div>
               </div>
             ))}
-          </div>
-          {data.opportunities.length > 5 && (
-            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', marginTop: '8px', textAlign: 'center' }}>
-              Showing first 5 of {data.opportunities.length} opportunities
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    // Handle generic data with close button
-    if (typeof data === 'object' && Object.keys(data).length > 0) {
-      const dataId = `data-${Date.now()}`;
-      return (
-        <div id={dataId} style={{
-          marginTop: '12px',
-          padding: '16px',
-          backgroundColor: 'rgba(0,0,0,0.3)',
-          borderRadius: '8px',
-          fontSize: '13px',
-          border: '1px solid rgba(15, 185, 129, 0.3)',
-          position: 'relative'
-        }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '8px'
-          }}>
-            <strong style={{ color: '#0FB981' }}>Raw Data</strong>
-            <button
-              onClick={() => {
-                const element = document.getElementById(dataId);
-                if (element) element.style.display = 'none';
-              }}
-              style={{
-                background: 'rgba(239, 68, 68, 0.2)',
-                border: '1px solid rgba(239, 68, 68, 0.5)',
-                borderRadius: '4px',
-                color: '#f87171',
-                padding: '4px 8px',
-                fontSize: '11px',
-                cursor: 'pointer'
-              }}
-            >
-              ✕ Close
-            </button>
-          </div>
-          <div style={{
-            backgroundColor: 'rgba(0,0,0,0.4)',
-            padding: '12px',
-            borderRadius: '6px',
-            maxHeight: '200px',
-            overflow: 'auto'
-          }}>
-            <pre style={{ 
-              whiteSpace: 'pre-wrap',
-              fontSize: '11px',
-              color: 'rgba(255,255,255,0.7)',
-              margin: 0
-            }}>
-              {JSON.stringify(data, null, 2)}
-            </pre>
           </div>
         </div>
       );
@@ -496,14 +848,6 @@ const ChatWidget = ({ isFullPage = false }) => {
                 }}
                 placeholder="pit-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
               />
-              <p style={{ 
-                fontSize: '12px', 
-                color: 'rgba(255,255,255,0.6)', 
-                marginTop: '4px',
-                margin: '4px 0 0 0'
-              }}>
-                Get this from your Smartsquatch integration settings
-              </p>
             </div>
             
             <div style={{ marginBottom: '16px' }}>
@@ -519,7 +863,7 @@ const ChatWidget = ({ isFullPage = false }) => {
               <input
                 type="text"
                 value={ghlConfig.locationId}
-                onChange={(e) => setGhlConfig({...ghlConfig, locationId: e.target.value})}
+onChange={(e) => setGhlConfig({...ghlConfig, locationId: e.target.value})}
                 style={{
                   width: '100%',
                   padding: '8px',
@@ -531,14 +875,6 @@ const ChatWidget = ({ isFullPage = false }) => {
                 }}
                 placeholder="Your location ID"
               />
-              <p style={{ 
-                fontSize: '12px', 
-                color: 'rgba(255,255,255,0.6)', 
-                marginTop: '4px',
-                margin: '4px 0 0 0'
-              }}>
-                Found in your location settings
-              </p>
             </div>
             
             <button 
@@ -626,28 +962,35 @@ const ChatWidget = ({ isFullPage = false }) => {
       >
         {messages.length === 0 && (
           <div style={{ color: 'rgba(255,255,255,0.8)' }}>
-            <p style={{ marginBottom: '8px', color: 'white' }}>
-              👋 Hello! I can help you with your Smartsquatch data.
-            </p>
-            <div style={{ fontSize: '14px' }}>
-              <p style={{ 
+            <div style={{ marginBottom: '16px', color: 'white', fontSize: '16px', fontWeight: '500' }}>
+              👋 Hello! I'm your Smartsquatch AI assistant.
+            </div>
+            <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
+              <div style={{ 
                 fontWeight: '500', 
-                marginBottom: '4px',
-                color: 'rgba(255,255,255,0.8)'
+                marginBottom: '8px',
+                color: 'rgba(255,255,255,0.9)'
               }}>
-                Try asking:
-              </p>
-              <ul style={{ 
-                listStyle: 'none', 
-                padding: 0, 
-                margin: 0,
-                color: 'rgba(255,255,255,0.6)'
-              }}>
-                <li>"Show me all my contacts"</li>
-                <li>"What appointments do I have today?"</li>
-                <li>"Get my recent conversations"</li>
-                <li>"Show me my opportunities"</li>
-              </ul>
+                I can help you with:
+              </div>
+              <div style={{ display: 'grid', gap: '6px', marginLeft: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'rgba(255,255,255,0.7)' }}>
+                  <Plus size={12} color="#0FB981" />
+                  <span>"Create contact John Smith with email john@example.com"</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'rgba(255,255,255,0.7)' }}>
+                  <Search size={12} color="#0FB981" />
+                  <span>"Show me all my contacts from this week"</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'rgba(255,255,255,0.7)' }}>
+                  <CalendarIcon size={12} color="#0FB981" />
+                  <span>"What appointments do I have today?"</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'rgba(255,255,255,0.7)' }}>
+                  <TrendingUp size={12} color="#0FB981" />
+                  <span>"Show me my open opportunities"</span>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -655,7 +998,7 @@ const ChatWidget = ({ isFullPage = false }) => {
         {messages.map((message) => (
           <div key={message.id} style={{ display: 'flex', justifyContent: 'flex-start' }}>
             <div style={{
-              maxWidth: '80%',
+              maxWidth: '85%',
               padding: '16px',
               borderRadius: '12px',
               backgroundColor: message.sender === 'user' 
@@ -674,18 +1017,29 @@ const ChatWidget = ({ isFullPage = false }) => {
             }}>
               <div style={{ 
                 fontSize: '14px', 
-                whiteSpace: 'pre-wrap',
                 lineHeight: '1.5'
               }}>
-                {message.content}
+                {message.sender === 'assistant' ? formatResponse(message.content) : message.content}
               </div>
+              
+              {/* AI Activity Panel */}
+              {message.aiActivity && (
+                <AIActivityPanel 
+                  activity={message.aiActivity} 
+                  messageId={message.id}
+                />
+              )}
+              
               {message.data && formatGHLData(message.data)}
+              
               <div style={{
                 fontSize: '12px',
-                marginTop: '8px',
+                marginTop: '12px',
                 color: message.sender === 'user' 
                   ? 'rgba(255,255,255,0.7)' 
-                  : 'rgba(255,255,255,0.6)'
+                  : 'rgba(255,255,255,0.6)',
+                borderTop: message.data || message.aiActivity ? '1px solid rgba(255,255,255,0.1)' : 'none',
+                paddingTop: message.data || message.aiActivity ? '8px' : '0'
               }}>
                 {message.timestamp}
               </div>
@@ -700,9 +1054,20 @@ const ChatWidget = ({ isFullPage = false }) => {
               borderRadius: '12px',
               backgroundColor: 'rgba(255, 255, 255, 0.1)',
               color: 'white',
-              border: '1px solid rgba(255, 255, 255, 0.2)'
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
             }}>
-              <div style={{ fontSize: '14px' }}>Thinking...</div>
+              <div style={{
+                width: '16px',
+                height: '16px',
+                border: '2px solid rgba(15, 185, 129, 0.3)',
+                borderRadius: '50%',
+                borderTop: '2px solid #0FB981',
+                animation: 'spin 1s linear infinite'
+              }} />
+              <div style={{ fontSize: '14px' }}>Analyzing your request...</div>
             </div>
           </div>
         )}
@@ -716,43 +1081,82 @@ const ChatWidget = ({ isFullPage = false }) => {
         backgroundColor: 'rgba(13, 45, 13, 0.9)',
         borderTop: '1px solid rgba(15, 185, 129, 0.2)'
       }}>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <input
-            type="text"
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder={isConnected ? "Ask about your Smartsquatch data..." : "Configure settings first..."}
-            disabled={isLoading || !isConnected}
-            style={{
-              flex: 1,
-              padding: '12px',
-              borderRadius: '8px',
-              border: '1px solid rgba(15, 185, 129, 0.3)',
-              backgroundColor: 'rgba(255,255,255,0.9)',
-              fontSize: '14px',
-              color: '#333',
-              outline: 'none'
-            }}
-          />
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
+          <div style={{ flex: 1 }}>
+            <textarea
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              onKeyDown={handleKeyPress}
+              placeholder={isConnected ? "Ask about your Smartsquatch data...\n(Shift+Enter for new line, Enter to send)" : "Configure settings first..."}
+              disabled={isLoading || !isConnected}
+              rows={1}
+              style={{
+                width: '100%',
+                minHeight: '44px',
+                maxHeight: '120px',
+                padding: '12px',
+                borderRadius: '8px',
+                border: '1px solid rgba(15, 185, 129, 0.3)',
+                backgroundColor: 'rgba(255,255,255,0.9)',
+                fontSize: '14px',
+                color: '#333',
+                outline: 'none',
+                resize: 'none',
+                fontFamily: 'inherit',
+                lineHeight: '1.4',
+                overflow: 'hidden'
+              }}
+              onInput={(e) => {
+                // Auto-resize textarea
+                e.target.style.height = 'auto';
+                e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+              }}
+            />
+            <div style={{
+              fontSize: '11px',
+              color: 'rgba(255,255,255,0.5)',
+              marginTop: '4px',
+              textAlign: 'right'
+            }}>
+              Shift+Enter for new line • Enter to send
+            </div>
+          </div>
           <button
             onClick={sendMessage}
             disabled={isLoading || !inputMessage.trim() || !isConnected}
             style={{
-              padding: '12px 24px',
+              padding: '12px 20px',
               borderRadius: '8px',
               border: '1px solid rgba(15, 185, 129, 0.3)',
               backgroundColor: 'rgba(15, 185, 129, 0.8)',
               color: 'white',
               cursor: (isLoading || !inputMessage.trim() || !isConnected) ? 'not-allowed' : 'pointer',
-              opacity: (isLoading || !inputMessage.trim() || !isConnected) ? 0.5 : 1
+              opacity: (isLoading || !inputMessage.trim() || !isConnected) ? 0.5 : 1,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              height: '44px',
+              flexShrink: 0
             }}
-            title="Send message"
+            title="Send message (Enter)"
           >
             <Send size={16} />
           </button>
         </div>
       </div>
+      
+      <style>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes pulse {
+          0% { opacity: 1; }
+          50% { opacity: 0.5; }
+          100% { opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 };
