@@ -271,198 +271,57 @@ const ChatWidget = ({ isFullPage = false }) => {
   };
 
   const sendMessage = async () => {
-    if (!inputMessage.trim() || isLoading) return;
+  if (!inputMessage.trim() || isLoading) return;
 
-    if (!isConnected) {
-      addMessage('system', 'Please configure your Smartsquatch connection first.');
-      setShowSettings(true);
-      return;
+  if (!isConnected) {
+    addMessage('system', 'Please configure your Smartsquatch connection first.');
+    setShowSettings(true);
+    return;
+  }
+
+  const userMessage = inputMessage;
+  setInputMessage('');
+  addMessage('user', userMessage);
+  setIsLoading(true);
+
+  const activitySteps = [
+    { step: 'Processing with AI', status: 'in-progress', details: 'Gemini is analyzing your request...' },
+    { step: 'Executing action', status: 'pending', details: 'Waiting for AI decision...' },
+    { step: 'Formatting response', status: 'pending', details: 'Preparing response...' }
+  ];
+
+  try {
+    // Send the ENTIRE request to Gemini for processing
+    const response = await fetch('/api/mcp/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: userMessage,
+        ghlToken: ghlConfig.token,
+        locationId: ghlConfig.locationId,
+        useFullAI: true // Flag to tell backend to use Gemini for everything
+      })
+    });
+
+    activitySteps[0].status = 'completed';
+    activitySteps[1].status = 'completed';
+    activitySteps[2].status = 'completed';
+
+    const result = await response.json();
+
+    if (result.error) {
+      addMessage('system', `Error: ${result.error}`);
+    } else {
+      // Gemini returns the complete formatted response
+      addMessage('assistant', result.response, result.ghlData, activitySteps);
     }
 
-    const userMessage = inputMessage;
-    setInputMessage('');
-    addMessage('user', userMessage);
-    setIsLoading(true);
-
-    // Analyze the user's request
-    const analysis = analyzeUserRequest(userMessage);
-    
-    const activitySteps = [
-      { step: 'Analyzing request', status: 'completed', details: `Detected intent: ${analysis.action}` },
-      { step: 'Validating requirements', status: 'in-progress', details: 'Checking required fields...' },
-      { step: 'Processing request', status: 'pending', details: 'Waiting for validation...' },
-      { step: 'Formatting response', status: 'pending', details: 'Preparing response...' }
-    ];
-
-    // Simulate processing delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    let response = '';
-    let mockData = null;
-
-    // Handle different actions based on analysis
-    switch (analysis.action) {
-      case 'CREATE_CONTACT':
-        activitySteps[1].status = 'completed';
-        activitySteps[2].status = 'in-progress';
-        
-        const missingFields = validateRequiredFields(analysis.action, analysis.extractedData, analysis.requiredFields);
-        
-        if (missingFields.length > 0) {
-          response = `# Contact Creation Request
-
-I can help you create a new contact! However, I need some additional information:
-
-**Missing required fields:**
-${missingFields.map(field => `- ${field}`).join('\n')}
-
-**Current information I have:**
-${Object.keys(analysis.extractedData).length > 0 
-  ? Object.entries(analysis.extractedData).map(([key, value]) => `- ${key}: ${value}`).join('\n')
-  : '- No contact information detected'}
-
-Please provide the missing information and I'll create the contact for you.
-
-**Example:** "Create contact John Smith with email john@example.com"`;
-        } else {
-          activitySteps[2].status = 'completed';
-          activitySteps[3].status = 'completed';
-          
-          response = `# Contact Created Successfully!
-
-**New contact details:**
-- **Name:** ${analysis.extractedData.firstName} ${analysis.extractedData.lastName}
-- **Email:** ${analysis.extractedData.email || 'Not provided'}
-- **Phone:** ${analysis.extractedData.phone || 'Not provided'}
-
-The contact has been added to your Smartsquatch database and is now available for follow-up activities like scheduling appointments or adding to campaigns.`;
-          
-          mockData = {
-            contacts: [{
-              name: `${analysis.extractedData.firstName} ${analysis.extractedData.lastName}`,
-              firstName: analysis.extractedData.firstName,
-              lastName: analysis.extractedData.lastName,
-              email: analysis.extractedData.email,
-              phone: analysis.extractedData.phone,
-              source: 'AI Assistant',
-              tags: ['New Lead']
-            }]
-          };
-        }
-        break;
-
-      case 'GET_CONTACTS':
-        activitySteps[1].status = 'completed';
-        activitySteps[2].status = 'completed';
-        activitySteps[3].status = 'completed';
-        
-        response = `# Contact Search Results
-
-Here are your contacts based on your request:`;
-        
-        mockData = {
-          contacts: [
-            {
-              name: "John Doe",
-              firstName: "John",
-              lastName: "Doe", 
-              email: "john.doe@example.com",
-              phone: "(555) 123-4567",
-              source: "Website",
-              tags: ["Lead", "Interested", "Follow-up"]
-            },
-            {
-              name: "Jane Smith",
-              firstName: "Jane",
-              lastName: "Smith",
-              email: "jane.smith@example.com", 
-              phone: "(555) 987-6543",
-              source: "Facebook",
-              tags: ["Customer", "VIP"]
-            },
-            {
-              name: "Mike Johnson",
-              firstName: "Mike",
-              lastName: "Johnson",
-              email: "mike.j@example.com",
-              phone: "(555) 456-7890",
-              source: "Referral",
-              tags: ["Prospect"]
-            }
-          ]
-        };
-        break;
-
-      case 'GET_APPOINTMENTS':
-        activitySteps[1].status = 'completed';
-        activitySteps[2].status = 'completed';
-        activitySteps[3].status = 'completed';
-        
-        response = `# Upcoming Appointments
-
-Here are your scheduled appointments:`;
-        
-        mockData = {
-          events: [
-            {
-              title: "Sales Call with John Doe",
-              startTime: new Date(Date.now() + 86400000).toISOString()
-            },
-            {
-              title: "Follow-up Meeting",
-              startTime: new Date(Date.now() + 172800000).toISOString()
-            }
-          ]
-        };
-        break;
-
-      case 'GET_OPPORTUNITIES':
-        activitySteps[1].status = 'completed';
-        activitySteps[2].status = 'completed';
-        activitySteps[3].status = 'completed';
-        
-        response = `# Current Opportunities
-
-Here are your active opportunities:`;
-        
-        mockData = {
-          opportunities: [
-            {
-              name: "Website Redesign Project",
-              monetaryValue: 5000
-            },
-            {
-              name: "Marketing Campaign",
-              monetaryValue: 3500
-            }
-          ]
-        };
-        break;
-
-      default:
-        response = `# General Query Response
-
-I can help you with various Smartsquatch tasks:
-
-**Contact Management:**
-- Create new contacts: "Create contact John Smith with email john@example.com"
-- Find contacts: "Show me all my contacts" or "Find contacts from this week"
-
-**Appointments:**
-- View appointments: "Show my appointments today"
-- Schedule meetings: "Book appointment with John Doe tomorrow at 2pm"
-
-**Opportunities:**
-- View deals: "Show me my open opportunities"
-- Track progress: "What deals are closing this month?"
-
-What would you like to do?`;
-    }
-
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    addMessage('assistant', response, mockData, activitySteps);
+  } catch (error) {
+    addMessage('system', 'Sorry, I encountered an error processing your request.');
+  } finally {
     setIsLoading(false);
-  };
+  }
+};
 
   const AIActivityPanel = ({ activity, messageId }) => {
     const [isExpanded, setIsExpanded] = useState(true);
