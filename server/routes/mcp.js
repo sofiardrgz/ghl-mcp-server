@@ -72,8 +72,11 @@ router.post('/chat', async (req, res) => {
   try {
     const { message, ghlToken, locationId } = req.body;
 
+    // Step 1: Let Gemini detect action
     const ghlAction = await determineGHLActionWithAI(message);
+
     let ghlData = null;
+    let meta = {};   // track MCP errors
 
     if (ghlAction && ghlAction.tool) {
       const ghlHeaders = {
@@ -84,10 +87,18 @@ router.post('/chat', async (req, res) => {
       try {
         switch (ghlAction.action) {
           case 'get_all_contacts':
-            ghlData = await callGHLMCP(ghlAction.tool, { limit: 50, includeTags: true, includeCustomFields: true }, ghlHeaders);
+            ghlData = await callGHLMCP(
+              ghlAction.tool,
+              { limit: 50, includeTags: true, includeCustomFields: true },
+              ghlHeaders
+            );
             break;
           case 'get_contact':
-            ghlData = await callGHLMCP(ghlAction.tool, { limit: 10, includeTags: true }, ghlHeaders);
+            ghlData = await callGHLMCP(
+              ghlAction.tool,
+              { limit: 10, includeTags: true },
+              ghlHeaders
+            );
             break;
           case 'create_contact':
             const extractedContactInfo = await getGeminiResponse(
@@ -97,9 +108,13 @@ Fields: firstName, lastName, name, email, phone`,
             );
             let contactData = {};
             try {
-              contactData = JSON.parse(extractedContactInfo.replace(/```json|```/g, "").trim());
+              contactData = JSON.parse(
+                extractedContactInfo.replace(/```json|```/g, "").trim()
+              );
             } catch {
-              ghlData = { error: "I need name + email or phone to create a contact." };
+              ghlData = {
+                error: "I need at least name + email or phone to create a contact."
+              };
               break;
             }
             ghlData = await callGHLMCP(ghlAction.tool, contactData, ghlHeaders);
@@ -108,8 +123,16 @@ Fields: firstName, lastName, name, email, phone`,
             const today = new Date();
             const endDate = new Date();
             endDate.setDate(today.getDate() + 7);
-            ghlData = await callGHLMCP(ghlAction.tool, { startDate: today.toISOString().split("T")[0], endDate: endDate.toISOString().split("T")[0] }, ghlHeaders);
+            ghlData = await callGHLMCP(
+              ghlAction.tool,
+              {
+                startDate: today.toISOString().split("T")[0],
+                endDate: endDate.toISOString().split("T")[0]
+              },
+              ghlHeaders
+            );
             break;
+          // all the other default/simple cases
           case 'search_conversation':
           case 'get_messages':
           case 'send_message':
@@ -128,14 +151,32 @@ Fields: firstName, lastName, name, email, phone`,
         }
       } catch (ghlError) {
         console.error('GHL Error:', ghlError);
-        ghlData = { error: 'Unable to fetch data from GoHighLevel', details: ghlError.message };
+        meta.error = ghlError.message || 'GHL call failed';
       }
     }
 
-    const systemPrompt = `You are a GoHighLevel CRM assistant. Use provided data if available, otherwise be helpful.`;
-    const aiResponse = await getGeminiResponse(systemPrompt, `${message}\n\nGHL Data:\n${JSON.stringify(ghlData || {}, null, 2)}`);
+    // Step 2: short-circuit if MCP errored
+    if (meta.error) {
+      return res.json({
+        response: `I could not reach GoHighLevel. ${meta.error}. Check your token and location id in settings.`,
+        ghlData: null,
+        actionTaken: ghlAction?.action || 'none',
+        meta
+      });
+    }
 
-    res.json({ response: aiResponse, ghlData, actionTaken: ghlAction?.action || 'general_conversation' });
+    // Step 3: Normal flow — ask Gemini for response
+    const systemPrompt = `You are a GoHighLevel CRM assistant. Use provided data if available, otherwise be helpful.`;
+    const aiResponse = await getGeminiResponse(
+      systemPrompt,
+      `${message}\n\nGHL Data:\n${JSON.stringify(ghlData || {}, null, 2)}`
+    );
+
+    res.json({
+      response: aiResponse,
+      ghlData,
+      actionTaken: ghlAction?.action || 'general_conversation'
+    });
   } catch (error) {
     console.error("Chat endpoint error:", error);
     res.status(500).json({ error: error.message });
