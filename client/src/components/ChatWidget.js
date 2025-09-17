@@ -41,30 +41,33 @@ const ChatWidget = ({ isFullPage = false }) => {
     scrollToBottom();
   }, [messages]);
 
-  useEffect(() => {
-    // Simulate connection for demo
-    const config = { token: 'demo-token', locationId: 'demo-location' };
-    setGhlConfig(config);
-    setIsConnected(true);
-    addMessage('system', 'Successfully connected to Smartsquatch! You can now ask questions about your data.');
-  }, []);
+  
 
-  const saveConfig = () => {
-    setShowSettings(false);
-    setIsConnected(true);
-    addMessage('system', 'Configuration saved successfully!');
-  };
+  const saveConfig = async () => {
+  setShowSettings(false);
+  setIsLoading(true);
+  try {
+    const resp = await fetch('/api/mcp/test-connection', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ghlToken: ghlConfig.token, locationId: ghlConfig.locationId })
+    });
+    const data = await resp.json();
 
-  const addMessage = (sender, content, data = null, aiActivity = null) => {
-    setMessages(prev => [...prev, {
-      id: Date.now(),
-      sender,
-      content,
-      data,
-      aiActivity,
-      timestamp: new Date().toLocaleTimeString()
-    }]);
-  };
+    if (data.success) {
+      setIsConnected(true);
+      addMessage('system', 'Connection successful. You can start asking about your data.');
+    } else {
+      setIsConnected(false);
+      addMessage('system', `Connection failed. ${data.error || 'Check your token and location id.'}`);
+    }
+  } catch (e) {
+    setIsConnected(false);
+    addMessage('system', `Connection failed. ${e.message}`);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   // AI Analysis function to understand user intent and requirements
   const analyzeUserRequest = (message) => {
