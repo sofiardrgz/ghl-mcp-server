@@ -177,10 +177,43 @@ If no clear GHL action is detected, return: {"tool": null, "action": null}`,
 }
 
 // Main chat endpoint
+// Main chat endpoint
 router.post('/chat', async (req, res) => {
   try {
     const { message, ghlToken, locationId } = req.body;
 
+    // Step 1: Let Gemini figure out what action the user wants
+    const ghlAction = await determineGHLActionWithAI(message);
+
+    let ghlData = null;
+
+    // Step 2: If Gemini mapped the request to a GHL tool, call MCP
+    if (ghlAction && ghlAction.tool) {
+      const headers = {
+        'Authorization': `Bearer ${ghlToken}`,
+        'locationId': locationId
+      };
+
+      ghlData = await callGHLMCP(ghlAction.tool, {}, headers);
+    }
+
+    // Step 3: Ask Gemini to write a friendly response, using MCP data if present
+    const aiResponse = await getGeminiResponse(
+      "You are a helpful CRM assistant. If GoHighLevel data is provided, explain it clearly to the user.",
+      `${message}\n\nGHL Data:\n${JSON.stringify(ghlData || {}, null, 2)}`
+    );
+
+    res.json({
+      response: aiResponse,
+      ghlData,
+      actionTaken: ghlAction?.action || "general_conversation"
+    });
+
+  } catch (error) {
+    console.error("Chat endpoint error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
     // Use Gemini to understand and process the request
     const geminiPrompt = `You are a Smartsquatch AI assistant. Analyze this user request and respond with the appropriate action.
 
