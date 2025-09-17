@@ -177,13 +177,41 @@ If no clear GHL action is detected, return: {"tool": null, "action": null}`,
 }
 
 // Main chat endpoint
-router.post('/chat', validateGHLCredentials, async (req, res) => {
+router.post('/chat', async (req, res) => {
   try {
     const { message, ghlToken, locationId } = req.body;
-    
-    if (!message) {
-      return res.status(400).json({ error: 'Message is required' });
-    }
+
+    // Use Gemini to understand and process the request
+    const geminiPrompt = `You are a Smartsquatch AI assistant. Analyze this user request and respond with the appropriate action.
+
+User request: "${message}"
+
+Available actions:
+- GET_CONTACTS: Show/list contacts
+- CREATE_CONTACT: Add new contact (needs firstName, lastName, email OR phone)
+- GET_APPOINTMENTS: Show calendar/appointments
+- GET_OPPORTUNITIES: Show deals/opportunities
+
+Respond with JSON only:
+{
+  "action": "ACTION_NAME",
+  "response": "Your helpful response to the user",
+  "mockData": { ... } // Include mock data if showing results
+}`;
+
+    // Call your Gemini API here
+    const geminiResponse = await callGeminiAPI(geminiPrompt);
+    const aiResult = JSON.parse(geminiResponse);
+
+    res.json({
+      response: aiResult.response,
+      ghlData: aiResult.mockData
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
     // Determine if this requires a GHL action using AI
     const ghlAction = await determineGHLActionWithAI(message);
