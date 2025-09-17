@@ -33,14 +33,16 @@ async function callGHLMCP(tool, input, headers) {
       params: { name: tool, arguments: input }
     };
 
-    const response = await axios.post(GHL_MCP_URL, requestData, {
-      headers: {
-        'Authorization': headers.Authorization,
-        'locationId': headers.locationId,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json, text/event-stream'
-      }
-    });
+    const response = await axios.post(GHL_MCP_URL, requestData, { 
+  headers: {
+    'Authorization': headers.Authorization,         // "Bearer pit_..."
+    'locationId': headers.locationId,              // lower
+    'LocationId': headers.locationId,              // upper
+    'Version': '2021-07-28',
+    'Content-Type': 'application/json',
+    'Accept': 'application/json, text/event-stream'
+  }
+});
 
     return response.data;
   } catch (error) {
